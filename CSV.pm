@@ -8,10 +8,10 @@ package Text::CSV;
 # HISTORY
 #
 # Written by:
-#    Alan Citterman <alan@mfgrtl.com>
+#    Eduardo Rangel Thompson <erangel@gmail.com>
 #
-# Version 0.01  06/05/1997
-#    original version
+# Version 0.5  19/06/2006
+# Original Version 0.001 by Alan Citterman <alan@mfgrtl.com>
 ################################################################################
 
 require 5.002;
@@ -22,7 +22,7 @@ BEGIN {
   use Exporter   ();
   use AutoLoader qw(AUTOLOAD);
   use vars       qw($VERSION @ISA @EXPORT @EXPORT_OK %EXPORT_TAGS);
-  $VERSION =     '0.01';
+  $VERSION =     '0.5';
   @ISA =         qw(Exporter AutoLoader);
   @EXPORT =      qw();
   @EXPORT_OK =   qw();
@@ -57,6 +57,7 @@ sub new {
   $self->{'_ERROR_INPUT'} = undef;
   $self->{'_STRING'} = undef;
   $self->{'_FIELDS'} = undef;
+  $self->{'_DELIMITER'} = ',';
   bless $self, $class;
   return $self;
 }
@@ -93,6 +94,30 @@ sub error_input {
 sub string {
   my $self = shift;
   return $self->{'_STRING'};
+}
+
+################################################################################
+# setDelimiter
+#
+#   method to define a delimiter for use in parse / combine
+################################################################################
+sub setDelimiter {
+  my $self = shift;
+  my $del  = shift;
+
+  $self->{'_DELIMITER'} = $del;
+}
+
+
+################################################################################
+# getDelimiter
+#
+#   method to retrun a delimiter in use
+################################################################################
+sub getDelimiter {
+  my $self = shift;
+
+  return $self->{'_DELIMITER'};
 }
 
 ################################################################################
@@ -144,12 +169,12 @@ sub combine {
       }
       if ($skip_comma) {
 
-	# do not put a comma before the first argument...
+	# do not put a delimiter before the first argument...
 	$skip_comma = 0;
       } else {
 
-	# do put a comma before all arguments except the first argument...
-	$combination .= ',';
+	# do put a delimiter before all arguments except the first argument...
+	$combination .= $self->{'_DELIMITER'};
       }
       $column =~ s/\042/\042\042/go;
       $combination .= "\042";
@@ -263,9 +288,9 @@ sub _bite {
 	  # an embedded double-quote...
 	  $$piece_ref .= "\042";
 	  substr($$line_ref, 0, 2) = '';
-	} elsif ($$line_ref =~ /^\042,/) {
+	} elsif ($$line_ref =~ /^\042$self->{'_DELIMITER'}/) {
 
-	  # closing double-quote followed by a comma...
+	  # closing double-quote followed by a delimiter...
 	  substr($$line_ref, 0, 2) = '';
 	  $$bite_again_ref = 1;
 	  $ok = 1;
@@ -287,23 +312,23 @@ sub _bite {
 	  last;
 	}
       }
-    } elsif ($$line_ref =~ /^,/) {
+    } elsif ($$line_ref =~ /^$self->{'_DELIMITER'}/) {
 
-      # comma...
+      # delimiter...
       if ($in_quotes) {
 
-	# a comma, inside double-quotes...
+	# a delimiter, inside double-quotes...
 	$$piece_ref .= substr($$line_ref, 0 ,1);
 	substr($$line_ref, 0, 1) = '';
       } else {
 
-	# a comma, which separates values...
+	# a delimiter, which separates values...
 	substr($$line_ref, 0, 1) = '';
 	$$bite_again_ref = 1;
 	$ok = 1;
 	last;
       }
-    } elsif ($$line_ref =~ /^[\t\040-\176]/) {
+    } elsif ($$line_ref =~ /^[\t\x20-\xff]/) {
 
       # a tab, space, or printable...
       $$piece_ref .= substr($$line_ref, 0 ,1);
@@ -328,6 +353,8 @@ Text::CSV - comma-separated values manipulation routines
  $version = Text::CSV->version();      # get the module version
 
  $csv = Text::CSV->new();              # create a new object
+
+ $csv = Text::CSV->setDelimiter(';');  # define the delimiter
 
  $status = $csv->combine(@columns);    # combine columns into a string
  $line = $csv->string();               # get the combined string
@@ -361,6 +388,18 @@ module version.
 
 This function may be called as a class or an object method.  It returns a reference to a
 newly created Text::CSV object.
+
+=item new
+
+ $csv->setDelimiter(';');
+
+This function define a delimiter to use. By default, the delimiter is ',' (comma)
+
+=item new
+
+ $delimiter = $csv->getDelimiter();
+
+This function returns the  delimiter in use by the object.
 
 =item combine
 
@@ -422,6 +461,7 @@ or C<parse()>, whichever was called more recently.
 
   my $column = '';
   my $sample_input_string = '"I said, ""Hi!""",Yes,"",2.34,,"1.09"';
+  # By default, the delimiter is ',', you don't need to change
   if ($csv->parse($sample_input_string)) {
     my @field = $csv->fields;
     my $count = 0;
@@ -447,6 +487,20 @@ or C<parse()>, whichever was called more recently.
     print "combine() failed on argument: ", $err, "\n";
   }
 
+  $csv->setDelimiter(';');
+  my $sample_new_input_string = '"I said; ""Hi!""";Yes;"";2.34;;"1.09"';
+  if ($csv->parse($sample_new_input_string)) {
+    my @fieldN = $csv->fields;
+    my $countN = 0;
+    for my $column (@fieldN) {
+      print ++$count, " => ", $column, "\n";
+    }
+    print "\n";
+  } else {
+    my $err = $csv->error_input;
+    print "parse() failed on argument: ", $err, "\n";
+  }
+
 =head1 CAVEATS
 
 This module is based upon a working definition of CSV format which may not be
@@ -457,7 +511,7 @@ the most general.
 =item 1 
 
 Allowable characters within a CSV field include 0x09 (tab) and the inclusive
-range of 0x20 (space) through 0x7E (tilde).
+range of 0x20 (space) through 0xFF (ÿ).
 
 =item 2
 
@@ -465,7 +519,7 @@ A field within CSV may be surrounded by double-quotes.
 
 =item 3
 
-A field within CSV must be surrounded by double-quotes to contain a comma.
+A field within CSV must be surrounded by double-quotes to contain a comma or delimiter.
 
 =item 4
 
@@ -477,12 +531,20 @@ double-quote, represented by a pair of consecutive double-quotes.
 A CSV string may be terminated by 0x0A (line feed) or by 0x0D,0x0A
 (carriage return, line feed).
 
+=head1 REFERENCES
+
+L<http://search.cpan.org/~alancitt/Text-CSV-0.01/CSV.pm>
+
+=head1 THANKS
+
+Many thanks to  Alan Citterman, but I didn't found it to continue the original version.
+
 =head1 AUTHOR
 
-Alan Citterman F<E<lt>alan@mfgrtl.comE<gt>>
+Eduardo Rangel Thompson  F<E<lt>erangel@gmail.comE<gt>> 
 
 =head1 SEE ALSO
 
-perl(1)
+perl(1), TEXT::CSV
 
 =cut

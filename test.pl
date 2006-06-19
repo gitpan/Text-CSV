@@ -6,7 +6,7 @@
 # Change 1..1 below to 1..last_test_to_print .
 # (It may become useful if the test is moved to ./t subdirectory.)
 
-BEGIN { $| = 1; print "1..20\n"; }
+BEGIN { $| = 1; print "1..30\n"; }
 END {print "not ok 1\n" unless $loaded;}
 use Text::CSV;
 $loaded = 1;
@@ -129,3 +129,71 @@ if ($csv->status()) {  # success - test #19 should have succeeded
 } else {
   print "not ok 20\n";  
 }
+if ($csv->parse(qq("","Este é um teste com acêntos,ÇÑñ, com Ç é, não à \t""Olá!""","")) and
+($csv->fields())[0] eq '' and
+($csv->fields())[1] eq qq(Este é um teste com acêntos,ÇÑñ, com Ç é, não à \t"Olá!") and
+($csv->fields())[2] eq '') {
+  print "ok 21\n";
+} else {
+  print "NOT ok 21\n";
+}
+if ($csv->status()) {  # success - test #21 should have succeeded
+  print "ok 22\n";
+} else {
+  print "not ok 22\n";
+}
+if ($csv->getDelimiter eq ',') {
+  print "ok 23\n";
+} else {
+  print "not ok 23\n";
+}
+if ($csv->setDelimiter(';')) {
+  print "ok 24\n";
+} else {
+  print "not ok 24\n";
+}
+if ($csv->parse(qq("";"Este é um teste com acêntos,ÇÑñ, com Ç é, não à \t""Olá!""";"")) and
+($csv->fields())[0] eq '' and
+($csv->fields())[1] eq qq(Este é um teste com acêntos,ÇÑñ, com Ç é, não à \t"Olá!") and
+($csv->fields())[2] eq '') {
+  print "ok 25\n";
+} else {
+  print "NOT ok 25\n";
+}
+if ($csv->getDelimiter eq ';') {
+  print "ok 26\n";
+} else {
+  print "not ok 26\n";
+}
+if ($csv->parse(qq("Value 1";"Este é um teste com acêntos;ÇÑñ, com Ç é, não à \t""Olá!""";"";"ZigZera")) and
+($csv->fields())[0] eq 'Value 1' and 
+($csv->fields())[1] eq qq(Este é um teste com acêntos;ÇÑñ, com Ç é, não à \t"Olá!") and
+($csv->fields())[2] eq '' and
+($csv->fields())[3] eq 'ZigZera') {
+  print "ok 27\n";
+} else {
+  print "NOT ok 27\n";
+}
+if ($csv->setDelimiter('\'')) {
+  print "ok 28\n";
+} else {
+  print "not ok 28\n";
+}
+if ($csv->parse(qq(Value 1'Este é um teste com acêntos;ÇÑñ, com Ç é, não à \t'Olá!'"'"';';ZigZera)) and
+($csv->fields())[0] eq 'Value 1' and 
+($csv->fields())[1] eq qq(Este é um teste com acêntos;ÇÑñ, com Ç é, não à \t) and
+($csv->fields())[2] eq 'Olá!' and
+($csv->fields())[3] eq '\'' and
+($csv->fields())[4] eq ';' and
+($csv->fields())[5] eq ';ZigZera') {
+  print "ok 29\n";
+} else {
+  print "NOT ok 29\n";
+}
+if ($csv->version) {
+  print "ok 30\n";
+  print "Version: ". $csv->version ."\n";
+} else {
+  print "not ok 28\n";
+}
+ 
