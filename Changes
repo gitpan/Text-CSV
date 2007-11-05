@@ -1,0 +1,23 @@
+Revision history for Perl extension Text::CSV and Text::CSV_PurePerl.
+
+
+Text::CSV
+
+0.99_03  Fri Nov  2 14:37:30 2007
+	- CPAN released but beta version.
+	- test suits are from Text::CSV_XS 0.32 and modfied for Text::CSV tests.
+
+0.99_02  Fri Nov  2 14:37:30 2007
+	- pre release version.
+	- passed the all Text::CSV_XS 0.32 test suits
+
+0.99  Sat Jun 23 17:10:47 2007
+	- maintainer was changed.
+
+
+
+Text::CSV_PurePerl
+
+1.00 
+	- renamed from Text::CSV_PP 1.06
+
