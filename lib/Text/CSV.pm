@@ -12,10 +12,10 @@ package Text::CSV;
 # And extended by:
 #    H.Merijn Brand (h.m.brand[at]xs4all[dot]nl)
 #
-# For pure perl version of Text::CSV_XS, Text::CSV_PurePerl was written by:
+# For pure perl version of Text::CSV_XS, Text::CSV_PP was written by:
 #    Makamaka Hannyaharamitu (makamaka[at]donzoko[dot]net)
 #
-# And Text::CSV become a wrapper module to Text::CSV_XS and Text::CSV_PurePerl.
+# And Text::CSV become a wrapper module to Text::CSV_XS and Text::CSV_PP.
 #
 ############################################################################
 
@@ -25,13 +25,15 @@ use Carp ();
 
 # if use CSV_XS, requires version 0.32
 my $Module_XS = 'Text::CSV_XS';
-my $Module_PP = 'Text::CSV_PurePerl';
+my $Module_PP = 'Text::CSV_PP';
 
 
 BEGIN {
-    $Text::CSV::VERSION = '0.99_03';
+    $Text::CSV::VERSION = '0.99_04';
     $Text::CSV::DEBUG   = 0;
 }
+
+
 
 my @PublicMethods = qw/
     version types quote_char escape_char sep_char eol always_quote binary allow_whitespace
@@ -88,6 +90,8 @@ sub module {
 }
 
 
+
+
 sub AUTOLOAD {
     my $self = $_[0];
     my $attr = $Text::CSV::AUTOLOAD;
@@ -132,7 +136,7 @@ sub _load_xs {
 
 
 sub _load_pp {
-    $Text::CSV::DEBUG and Carp::carp "load $Module_PP.";
+    $Text::CSV::DEBUG and Carp::carp "Load $Module_PP.";
     eval qq| require $Module_PP |;
     if ($@) {
         Carp::croak $@;
@@ -222,12 +226,12 @@ B<only ascii characters>. Then, Jochen Wiedmann wrote L<Text::CSV_XS> which has
 the B<binary mode>. This XS version is maintained by H.Merijn Brand. And L<Text::CSV_PP>
 written by Makamaka was pure-Perl version of Text::CSV_XS.
 
-Now, Text::CSV was rewritten by Makamaka and become a wrapper to Text::CSV_XS or Text::CSV_PurePerl.
-Text::CSV_PP was renamed to L<Text::CSV_PurePerl> when it was bundled in this distribution.
+Now, Text::CSV was rewritten by Makamaka and become a wrapper to Text::CSV_XS or Text::CSV_PP.
+Text::CSV_PP was renamed to L<Text::CSV_PP> when it was bundled in this distribution.
 
-When you use Text::CSV, it calls other worker module - L<Text::CSV_XS> or L<Text::CSV_PurePerl>.
+When you use Text::CSV, it calls other worker module - L<Text::CSV_XS> or L<Text::CSV_PP>.
 By default, Text::CSV tries to use Text::CSV_XS which must be complied and installed properly.
-If this call is fail, Text::CSV uses L<Text::CSV_PurePerl>.
+If this call is fail, Text::CSV uses L<Text::CSV_PP>.
 
 The required Text::CSV_XS version is I<0.32> in Text::CSV version 1.00.
 
@@ -237,12 +241,12 @@ If you set an enviornment variable C<TEXT_CSV_XS>, The calling action will be ch
 
 =item TEXT_CSV_XS == 0
 
-Always use Text::CSV_PurePerl
+Always use Text::CSV_PP
 
 =item TEXT_CSV_XS == 1
 
 (The default) Use compiled Text::CSV_XS if it is properly compiled & installed,
-otherwise use Text::CSV_PurePerl
+otherwise use Text::CSV_PP
 
 =item TEXT_CSV_XS == 2
 
@@ -255,7 +259,7 @@ These ideas come from L<DBI::PurePerl> mechanism.
 example:
 
  BEGIN { $ENV{TEXT_CSV_XS} = 0 }
- use Text::CSV; # always uses Text::CSV_PurePerl
+ use Text::CSV; # always uses Text::CSV_PP
 
 
 =head2 BINARY MODE
@@ -650,7 +654,7 @@ the diagnostics message in string context.
 
 Depending on the used worker module, returned diagnostics is diffferent.
 
-Text::CSV_XS parses csv strings by dividing one character while Text::CSV_PurePerl
+Text::CSV_XS parses csv strings by dividing one character while Text::CSV_PP
 by using the regular expressions. That difference makes the different cause
 of the failure.
 
@@ -680,12 +684,29 @@ normal cases - when no error occured - may cause unexpected results.
 
 This function changes depending on the used module (XS or PurePerl).
 
-See to L<Text::CSV_XS/DIAGNOSTICS> and L<Text::CSV_PurePerl/DIAGNOSTICS>.
+See to L<Text::CSV_XS/DIAGNOSTICS> and L<Text::CSV_PP/DIAGNOSTICS>.
 
 
 =head1 TODO
 
 =over
+
+=item Wrapper mechanism
+
+Currently the wrapper mechanism is to change symbolic table for speed.
+
+ for my $method (@PublicMethods) {
+     *{"Text::CSV::$method"} = *{"$class\::$method"};
+ }
+
+But how about it - calling worker module object?
+
+ sub parse {
+     my $self = shift;
+     $self->{_WORKER_OBJECT}->parse(@_); # XS or PP CSV object
+ }
+
+
 
 =item Simple option
 
@@ -709,12 +730,12 @@ Is it needless?
 
 =back
 
-See to L<Text::CSV_XS/TODO> and L<Text::CSV_PurePerl/TODO>.
+See to L<Text::CSV_XS/TODO> and L<Text::CSV_PP/TODO>.
 
 
 =head1 SEE ALSO
 
-L<Text::CSV_PurePerl(3)> and L<Text::CSV_XS(3)>.
+L<Text::CSV_PP(3)> and L<Text::CSV_XS(3)>.
 
 
 =head1 AUTHORS and MAINTAINERS
@@ -734,10 +755,10 @@ added the field flags methods, wrote the major part of the test suite,
 completed the documentation, fixed some RT bugs. See ChangeLog releases
 0.25 and on.
 
-Makamaka Hannyaharamitu, E<lt>makamaka[at]cpan.orgE<gt> wrote Text::CSV_PurePerl
+Makamaka Hannyaharamitu, E<lt>makamaka[at]cpan.orgE<gt> wrote Text::CSV_PP
 which is pure perl version of Text::CSV_XS.
 
-New Text::CSV (since 0.99) and Text::CSV_PurePerl is maintained by Makamaka.
+New Text::CSV (since 0.99) is maintained by Makamaka.
 
 
 =head1 COPYRIGHT AND LICENSE
@@ -748,7 +769,7 @@ Copyright (C) 1997 Alan Citterman. All rights reserved.
 Copyright (C) 2007 Makamaka Hannyaharamitu.
 
 
-Text::CSV_PP (Text::CSV_PurePerl):
+Text::CSV_PP:
 
 Copyright (C) 2005-2007 Makamaka Hannyaharamitu.
 

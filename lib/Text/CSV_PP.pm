@@ -1,8 +1,8 @@
-package Text::CSV_PurePerl;
+package Text::CSV_PP;
 
 ################################################################################
 #
-# Text::CSV_PurePerl - Text::CSV_XS compatible pure-Perl module
+# Text::CSV_PP - Text::CSV_XS compatible pure-Perl module
 #
 ################################################################################
 require 5.005;
@@ -11,7 +11,7 @@ use strict;
 use vars qw($VERSION);
 use Carp ();
 
-$VERSION = '1.00';
+$VERSION = '1.07';
 
 sub PV () { 0 }
 sub IV () { 1 }
@@ -537,16 +537,16 @@ __END__
 
 =head1 NAME
 
-Text::CSV_PurePerl - Text::CSV_XS compatible pure-Perl module
+Text::CSV_PP - Text::CSV_XS compatible pure-Perl module
 
 
 =head1 SYNOPSIS
 
- use Text::CSV_PurePerl;
+ use Text::CSV_PP;
  
- $csv = Text::CSV_PurePerl->new();     # create a new object
+ $csv = Text::CSV_PP->new();     # create a new object
  # If you want to handle non-ascii char.
- $csv = Text::CSV_PurePerl->new({binary => 1});
+ $csv = Text::CSV_PP->new({binary => 1});
  
  $status = $csv->combine(@columns);    # combine columns into a string
  $line   = $csv->string();             # get the combined string
@@ -571,10 +571,10 @@ Text::CSV_PurePerl - Text::CSV_XS compatible pure-Perl module
 
 =head1 DESCRIPTION
 
-Text::CSV_PurePerl has almost same functions of L<Text::CSV_XS> which 
+Text::CSV_PP has almost same functions of L<Text::CSV_XS> which 
 provides facilities for the composition and decomposition of
 comma-separated values. As its name suggests, L<Text::CSV_XS>
-is a XS module and Text::CSV_PurePerl is a Puer Perl one.
+is a XS module and Text::CSV_PP is a Puer Perl one.
 
 
 =head1 FUNCTIONS
@@ -593,7 +593,7 @@ If you want the worker module version, you can use C<module> method.
 
 =item new(\%attr)
 
-(Class method) Returns a new instance of Text::CSV_PurePerl. The objects
+(Class method) Returns a new instance of Text::CSV_PP. The objects
 attributes are described by the (optional) hash ref C<\%attr>.
 Currently the following attributes are available:
 
@@ -671,7 +671,7 @@ The escape character can not be equal to the separation character.
 By default, parsing fields that have C<escape_char> characters that
 escape characters that do not need to be escaped, like:
 
- my $csv = Text::CSV_PurePerl->new ({ escape_char => "\\" });
+ my $csv = Text::CSV_PP->new ({ escape_char => "\\" });
  $csv->parse (qq{1,"my bar\'s",baz,42});
 
 would result in a parse error. Though it is still bad practice to
@@ -716,11 +716,11 @@ See to L<Text::CSV_XS>.
 
 To sum it up,
 
- $csv = Text::CSV_PurePerl->new ();
+ $csv = Text::CSV_PP->new ();
 
 is equivalent to
 
- $csv = Text::CSV_PurePerl->new ({
+ $csv = Text::CSV_PP->new ({
      quote_char          => '"',
      escape_char         => '"',
      sep_char            => ',',
@@ -828,10 +828,10 @@ This method is used to force that columns are of a given type. For
 example, if you have an integer column, two double columns and a
 string column, then you might do a
 
- $csv->types ([Text::CSV_PurePerl::IV (),
-               Text::CSV_PurePerl::NV (),
-               Text::CSV_PurePerl::NV (),
-               Text::CSV_PurePerl::PV ()]);
+ $csv->types ([Text::CSV_PP::IV (),
+               Text::CSV_PP::NV (),
+               Text::CSV_PP::NV (),
+               Text::CSV_PP::PV ()]);
 
 Column types are used only for decoding columns, in other words
 by the I<parse ()> and I<getline ()> methods.
@@ -965,7 +965,7 @@ normal cases - when no error occured - may cause unexpected results.
 Note: CSV_PP's diagnostics is different from CSV_XS's:
 
 Text::CSV_XS parses csv strings by dividing one character
-while Text::CSV_PurePerl by using the regular expressions.
+while Text::CSV_PP by using the regular expressions.
 That difference makes the different cause of the failure.
 Though diagnostics number 1001, 2027 and 2110 are common with CSV_XS.
 

@@ -1,6 +1,6 @@
 Changes
 lib/Text/CSV.pm
-lib/Text/CSV_PurePerl.pm
+lib/Text/CSV_PP.pm
 Makefile.PL
 MANIFEST
 README
