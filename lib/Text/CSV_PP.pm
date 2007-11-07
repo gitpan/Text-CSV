@@ -11,11 +11,11 @@ use strict;
 use vars qw($VERSION);
 use Carp ();
 
-$VERSION = '1.07';
+$VERSION = '1.08';
 
-sub PV () { 0 }
-sub IV () { 1 }
-sub NV () { 2 }
+sub PV  { 0 }
+sub IV  { 1 }
+sub NV  { 2 }
 
 sub IS_QUOTED () { 0x0001; }
 sub IS_BINARY () { 0x0002; }

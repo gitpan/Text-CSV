@@ -1,11 +1,14 @@
-Revision history for Perl extension Text::CSV and Text::CSV_PP.
+Revision history for Perl extension Text::CSV.
 
 
-Text::CSV
+0.99_05  Wed Nov  7 16:15:34 2007 (Text::CSV_PP 1.08)
+	- added 'dynamic mode' which can specify the worker module in new()ing
+            This is so experimental that may be removed.
+	- modified prototypes of Text::CSV_PP::NV, IV, PV
 
-0.99_04  Tue Nov  6 13:40:47 2007
-	re-rename Text::CSV_PP
-	added TODO
+0.99_04  Tue Nov  6 13:40:47 2007 (Text::CSV_PP 1.07)
+	- re-rename Text::CSV_PP
+	- added TODO
 
 0.99_03  Mon Nov  5 16:00:00 2007
 	- CPAN released but beta version.
@@ -21,13 +24,4 @@ Text::CSV
 
 0.01  06/05/1997
 	- original version by Alan Citterman
-
-
-Text::CSV_PP
-
-1.07
-	- re-renamed from Text::CSV_PurePerl to Text::CSV_PP
-
-1.00 
-	- renamed from Text::CSV_PP 1.06 to Text::CSV_PurePerl
 

@@ -23,16 +23,19 @@ package Text::CSV;
 use strict;
 use Carp ();
 
-# if use CSV_XS, requires version 0.32
-my $Module_XS = 'Text::CSV_XS';
-my $Module_PP = 'Text::CSV_PP';
-
-
 BEGIN {
-    $Text::CSV::VERSION = '0.99_04';
+    $Text::CSV::VERSION = '0.99_05';
     $Text::CSV::DEBUG   = 0;
 }
 
+# if use CSV_XS, requires version 0.32
+my $Module_XS  = 'Text::CSV_XS';
+my $Module_PP  = 'Text::CSV_PP';
+my $XS_Version = '0.32';
+
+# used in _load_xs and _load_pp
+my $Install_Dont_Die = 1; # When _load_xs fails to load XS, don't die.
+my $Install_Only     = 2; # Don't call _set_methods()
 
 
 my @PublicMethods = qw/
@@ -42,7 +45,6 @@ my @PublicMethods = qw/
     PV IV NV
 /;
 
-
 my @UndocumentedXSMethods = qw/Combine Parse/;
 
 my @UndocumentedPPMethods = qw//; # Currently empty
@@ -50,29 +52,101 @@ my @UndocumentedPPMethods = qw//; # Currently empty
 
 # Check the environment variable to decide worker module. 
 
-if ( exists $ENV{TEXT_CSV_XS} ) {
-    if ($ENV{TEXT_CSV_XS} == 0) {
-        _load_pp();
-    }
-    elsif ($ENV{TEXT_CSV_XS} == 1) {
-        _load_xs(1) or _load_pp();
-    }
-    elsif ($ENV{TEXT_CSV_XS} == 2) {
-        _load_xs();
+unless ($Text::CSV::Worker) {
+    $Text::CSV::DEBUG and  Carp::carp("Check used worker module...");
+
+    if ( exists $ENV{TEXT_CSV_XS} ) {
+        if ($ENV{TEXT_CSV_XS} == 0) {
+            _load_pp();
+        }
+        elsif ($ENV{TEXT_CSV_XS} == 1) {
+            _load_xs($Install_Dont_Die) or _load_pp();
+        }
+        elsif ($ENV{TEXT_CSV_XS} == 2) {
+            _load_xs();
+        }
+        else {
+            Carp::croak "The value of environmental variable 'TEXT_CSV_XS' is invalid.";
+        }
     }
     else {
-        Carp::croak "The value of environmental variable 'TEXT_CSV_XS' is invalid.";
+        _load_xs($Install_Dont_Die) or _load_pp();
+    }
+
+}
+
+
+my $compile_dynamic_mode = sub {
+    my ($class, $worker) = @_;
+
+    local $^W;
+    no strict qw(refs);
+
+    for my $method (@PublicMethods) {
+        eval qq|
+            *{"$class\::$method"} = sub {
+                my \$self = shift;
+                \$self->{_MODULE} -> $method(\@_);
+            };
+        |;
+    }
+
+    *Text::CSV::new = \&_new_dynamic;
+};
+
+
+sub import {
+    my ($class, $option) = @_;
+    if ($option and $option eq '-dynamic') {
+        $compile_dynamic_mode->($class => $Text::CSV::Worker);
+        $Text::CSV::DEBUG and  Carp::carp("Dynamic worker module mode."), "\n";
     }
 }
-else {
-    _load_xs(1) or _load_pp();
+
+
+sub _new_dynamic {
+    my $proto  = shift;
+    my $class  = ref($proto) || $proto or return;
+    my $module = $Text::CSV::Worker;
+
+    if (ref $_[0] and $_[0]->{module}) {
+        $module = delete $_[0]->{module}; # Caution! deleted from original hashref too.
+
+        my $installed = $module . '.pm';
+        $installed =~ s{::}{/};
+
+        unless ($INC{ $installed }) { # Not yet installed
+            if ($module eq $Module_XS) {
+                _load_xs($Install_Only);
+            }
+            elsif ($module eq $Module_PP) {
+                _load_pp($Install_Only);
+            }
+            else {
+            }
+        }
+
+    }
+
+    if ( my $obj = $module->new(@_) ) {
+        my $self = bless {}, $class;
+        $self->{_MODULE} = $obj;
+        return $self;
+    }
+    else {
+        return;
+    }
+
 }
 
 
-
-sub new {
+sub new { # normal mode
     my $proto = shift;
     my $class = ref($proto) || $proto or return;
+
+    if (ref $_[0] and $_[0]->{module}) {
+        Carp::croak("Can't set 'module' in non dynamic mode.");
+    }
 
     if ( my $obj = $Text::CSV::Worker->new(@_) ) {
         $obj->{_MODULE} = $Text::CSV::Worker;
@@ -81,12 +155,14 @@ sub new {
     else {
         return;
     }
+
 }
 
 
 sub module {
     my $proto = shift;
-    return ref($proto) ? $proto->{_MODULE} : $Text::CSV::Worker;
+    return   !ref($proto)            ? $Text::CSV::Worker
+           :  ref($proto->{_MODULE}) ? ref($proto->{_MODULE}) : $proto->{_MODULE};
 }
 
 
@@ -115,34 +191,44 @@ sub AUTOLOAD {
 
 
 sub _load_xs {
-    my $eval = shift;
+    my $opt = shift;
 
     $Text::CSV::DEBUG and Carp::carp "Load $Module_XS.";
 
-    eval qq| use $Module_XS 0.32 |;
+    eval qq| use $Module_XS $XS_Version |;
 
     if ($@) {
-        if ($eval) {
+        if (defined $opt and $opt & $Install_Dont_Die) {
             $Text::CSV::DEBUG and Carp::carp "Can't load $Module_XS...($@)";
             return 0;
         }
         Carp::croak $@;
     }
 
-    _set_methods( $Text::CSV::Worker = $Module_XS );
+    unless (defined $opt and $opt & $Install_Only) {
+        _set_methods( $Text::CSV::Worker = $Module_XS );
+    }
 
     return 1;
 };
 
 
 sub _load_pp {
+    my $opt = shift;
+
     $Text::CSV::DEBUG and Carp::carp "Load $Module_PP.";
+
     eval qq| require $Module_PP |;
     if ($@) {
         Carp::croak $@;
     }
-    _set_methods( $Text::CSV::Worker = $Module_PP );
+
+    unless (defined $opt and $opt & $Install_Only) {
+        _set_methods( $Text::CSV::Worker = $Module_PP );
+    }
 };
+
+
 
 
 sub _set_methods {
@@ -152,18 +238,19 @@ sub _set_methods {
     no strict qw(refs);
 
     for my $method (@PublicMethods) {
-        *{"Text::CSV::$method"} = *{"$class\::$method"};
+        *{"Text::CSV::$method"} = \&{"$class\::$method"};
     }
 
     for my $method (@UndocumentedXSMethods) {
-        *{"Text::CSV::$method"} = *{"$Module_XS\::$method"};
+        *{"Text::CSV::$method"} = \&{"$Module_XS\::$method"};
     }
 
     for my $method (@UndocumentedPPMethods) {
-        *{"Text::CSV::$method"} = *{"$Module_PP\::$method"};
+        *{"Text::CSV::$method"} = \&{"$Module_PP\::$method"};
     }
 
 }
+
 
 
 1;
@@ -687,6 +774,30 @@ This function changes depending on the used module (XS or PurePerl).
 See to L<Text::CSV_XS/DIAGNOSTICS> and L<Text::CSV_PP/DIAGNOSTICS>.
 
 
+=head1 DYNAMIC MODE
+
+When Text::CSV is installed, used worker module's methods are
+copied into Text::CSV symbol tables.
+
+But If you C<use> Text::CSV specifying C<-dynamic>, you can set C<module> option
+in C<new> which changes the worker module.
+
+ use Text::CSV -dynamic; # the worker module is Text:CSV_XS
+
+ my $csv = Text::CSV->new({module => 'Text::CSV_PP'});
+
+
+C<$csv> used Text::CSV_PP. This feature is so experimental that may be removed.
+
+Note:
+
+ %attr = (module => 'Text::CSV_PP');
+ my $csv = Text::CSV->new(\%attr);
+
+The hash key 'module' is C<delete>d in C<new()>, so it is also deleted from %attr.
+
+If you specify 'module' in non-dynamic mode, Text::CSV C<croak>s.
+
 =head1 TODO
 
 =over
@@ -696,7 +807,7 @@ See to L<Text::CSV_XS/DIAGNOSTICS> and L<Text::CSV_PP/DIAGNOSTICS>.
 Currently the wrapper mechanism is to change symbolic table for speed.
 
  for my $method (@PublicMethods) {
-     *{"Text::CSV::$method"} = *{"$class\::$method"};
+     *{"Text::CSV::$method"} = \&{"$class\::$method"};
  }
 
 But how about it - calling worker module object?
@@ -706,6 +817,8 @@ But how about it - calling worker module object?
      $self->{_WORKER_OBJECT}->parse(@_); # XS or PP CSV object
  }
 
+In version 0.99_05, 'dynamic mode' was introduced experimentally.
+See to L</DYNAMIC MODE>
 
 
 =item Simple option
