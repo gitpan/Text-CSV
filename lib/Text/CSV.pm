@@ -24,7 +24,7 @@ use strict;
 use Carp ();
 
 BEGIN {
-    $Text::CSV::VERSION = '0.99_05';
+    $Text::CSV::VERSION = '0.99_06';
     $Text::CSV::DEBUG   = 0;
 }
 
@@ -32,6 +32,8 @@ BEGIN {
 my $Module_XS  = 'Text::CSV_XS';
 my $Module_PP  = 'Text::CSV_PP';
 my $XS_Version = '0.32';
+
+my $Is_Dynamic = 0;
 
 # used in _load_xs and _load_pp
 my $Install_Dont_Die = 1; # When _load_xs fails to load XS, don't die.
@@ -99,6 +101,7 @@ sub import {
     my ($class, $option) = @_;
     if ($option and $option eq '-dynamic') {
         $compile_dynamic_mode->($class => $Text::CSV::Worker);
+        $Is_Dynamic = 1;
         $Text::CSV::DEBUG and  Carp::carp("Dynamic worker module mode."), "\n";
     }
 }
@@ -166,6 +169,17 @@ sub module {
 }
 
 
+sub is_xs {
+    return $_[0]->module eq $Module_XS;
+}
+
+
+sub is_pp {
+    return $_[0]->module eq $Module_PP;
+}
+
+
+sub is_dynamic { $Is_Dynamic; }
 
 
 sub AUTOLOAD {
@@ -241,12 +255,16 @@ sub _set_methods {
         *{"Text::CSV::$method"} = \&{"$class\::$method"};
     }
 
-    for my $method (@UndocumentedXSMethods) {
-        *{"Text::CSV::$method"} = \&{"$Module_XS\::$method"};
+    if ($Text::CSV::Worker eq $Module_XS) {
+        for my $method (@UndocumentedXSMethods) {
+            *{"Text::CSV::$method"} = \&{"$Module_XS\::$method"};
+        }
     }
 
-    for my $method (@UndocumentedPPMethods) {
-        *{"Text::CSV::$method"} = \&{"$Module_PP\::$method"};
+    if ($Text::CSV::Worker eq $Module_PP) {
+        for my $method (@UndocumentedPPMethods) {
+            *{"Text::CSV::$method"} = \&{"$Module_PP\::$method"};
+        }
     }
 
 }
@@ -314,7 +332,7 @@ the B<binary mode>. This XS version is maintained by H.Merijn Brand. And L<Text:
 written by Makamaka was pure-Perl version of Text::CSV_XS.
 
 Now, Text::CSV was rewritten by Makamaka and become a wrapper to Text::CSV_XS or Text::CSV_PP.
-Text::CSV_PP was renamed to L<Text::CSV_PP> when it was bundled in this distribution.
+Text::CSV_PP will be bundled in this distribution.
 
 When you use Text::CSV, it calls other worker module - L<Text::CSV_XS> or L<Text::CSV_PP>.
 By default, Text::CSV tries to use Text::CSV_XS which must be complied and installed properly.
@@ -758,6 +776,20 @@ Some methods are Text::CSV only.
 (Object method) Returns the used module name in creating it.
 
 At current, the worker module is decided once when Text::CSV is used in a program.
+
+
+=item is_xs
+
+Returns true value if Text::CSV or the object uses XS module as worker.
+
+=item is_pp
+
+Returns true value if Text::CSV or the object uses pure-Perl module as worker.
+
+=item is_dynamic
+
+Returns true value if Text::CSV is called with dynamic mode.
+
 
 =back
 

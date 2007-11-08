@@ -1,5 +1,8 @@
 Revision history for Perl extension Text::CSV.
 
+0.99_06 Thu Nov  8 13:24:31 2007
+	- modified _set_methods for Pod::Coverage test
+	- added t/exp01-dynamic.t
 
 0.99_05  Wed Nov  7 16:15:34 2007 (Text::CSV_PP 1.08)
 	- added 'dynamic mode' which can specify the worker module in new()ing

@@ -23,5 +23,7 @@ t/65_allow.t		Allow bad formats
 t/70_rt.t		Tests based on RT reports (for Text::CSV_XS)
 t/80_diag.t		Error diagnostics
 
+t/exp01-dynamic.t	Text::CSV's dynamic mode
+
 t/util.pl		Extra test utilities
 META.yml                                 Module meta-data (added by MakeMaker)
