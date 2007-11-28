@@ -5,8 +5,9 @@ Makefile.PL
 MANIFEST
 README
 
+# test suits are copied and modified from Text::CSV_XS
+
 t/00_pod.t		Check if pod is valid
-t/01_pod.t		Check if pod covers all
 t/10_base.t		Base tests (combine and parse only)
 t/12_acc.t		Accessor methods
 t/15_flags.t		Basic flag tests
@@ -23,7 +24,6 @@ t/65_allow.t		Allow bad formats
 t/70_rt.t		Tests based on RT reports (for Text::CSV_XS)
 t/80_diag.t		Error diagnostics
 
-t/exp01-dynamic.t	Text::CSV's dynamic mode
 
 t/util.pl		Extra test utilities
 META.yml                                 Module meta-data (added by MakeMaker)

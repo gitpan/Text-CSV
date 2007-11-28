@@ -1,5 +1,14 @@
 Revision history for Perl extension Text::CSV.
 
+
+1.00  Wed Nov 28 14:28:30 2007
+	- renamed $ENV{TEXT_CSV_XS} to $ENV{PERL_TEXT_CSV}
+	- added $ENV{PERL_TEXT_CSV} acceptable values
+	- deleted the dynamic mode section from the pod doc
+	- deleted t/exp01-dynamic.t
+	    (the feature still remains.)
+
+
 0.99_06 Thu Nov  8 13:24:31 2007
 	- modified _set_methods for Pod::Coverage test
 	- added t/exp01-dynamic.t

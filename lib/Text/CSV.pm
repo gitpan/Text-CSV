@@ -1,30 +1,11 @@
 package Text::CSV;
 
-################################################################################
-# HISTORY
-#
-# Text::CSV was written by:
-#    Alan Citterman <alan[at]mfgrtl[dot]com>
-#
-# Text::CSV_XS was written by:
-#    Jochen Wiedmann <joe[at]ispsoft[dot]de>
-#
-# And extended by:
-#    H.Merijn Brand (h.m.brand[at]xs4all[dot]nl)
-#
-# For pure perl version of Text::CSV_XS, Text::CSV_PP was written by:
-#    Makamaka Hannyaharamitu (makamaka[at]donzoko[dot]net)
-#
-# And Text::CSV become a wrapper module to Text::CSV_XS and Text::CSV_PP.
-#
-############################################################################
-
 
 use strict;
 use Carp ();
 
 BEGIN {
-    $Text::CSV::VERSION = '0.99_06';
+    $Text::CSV::VERSION = '1.00';
     $Text::CSV::DEBUG   = 0;
 }
 
@@ -57,18 +38,18 @@ my @UndocumentedPPMethods = qw//; # Currently empty
 unless ($Text::CSV::Worker) {
     $Text::CSV::DEBUG and  Carp::carp("Check used worker module...");
 
-    if ( exists $ENV{TEXT_CSV_XS} ) {
-        if ($ENV{TEXT_CSV_XS} == 0) {
+    if ( exists $ENV{PERL_TEXT_CSV} ) {
+        if ($ENV{PERL_TEXT_CSV} eq '0' or $ENV{PERL_TEXT_CSV} eq 'Text::CSV_PP') {
             _load_pp();
         }
-        elsif ($ENV{TEXT_CSV_XS} == 1) {
+        elsif ($ENV{PERL_TEXT_CSV} eq '1' or $ENV{PERL_TEXT_CSV} =~ /Text::CSV_XS\s*,\s*Text::CSV_PP/) {
             _load_xs($Install_Dont_Die) or _load_pp();
         }
-        elsif ($ENV{TEXT_CSV_XS} == 2) {
+        elsif ($ENV{PERL_TEXT_CSV} eq '2' or $ENV{PERL_TEXT_CSV} eq 'Text::CSV_XS') {
             _load_xs();
         }
         else {
-            Carp::croak "The value of environmental variable 'TEXT_CSV_XS' is invalid.";
+            Carp::croak "The value of environmental variable 'PERL_TEXT_CSV' is invalid.";
         }
     }
     else {
@@ -314,7 +295,7 @@ Text::CSV - comma-separated values manipulator (using XS or PurePerl)
 =head1 DESCRIPTION
 
 Text::CSV provides facilities for the composition and decomposition of
-comma-separated values using L<Text::CSV_XS> or its pure-Perl version.
+comma-separated values using L<Text::CSV_XS> or its pure Perl version.
 
 An instance of the Text::CSV class can combine fields into a CSV string
 and parse a CSV string into fields.
@@ -328,32 +309,38 @@ perhaps better called ASV (anything separated values) rather than just CSV.
 
 This module, L<Text::CSV> was firstly written by Alan Citterman which could deal with
 B<only ascii characters>. Then, Jochen Wiedmann wrote L<Text::CSV_XS> which has
-the B<binary mode>. This XS version is maintained by H.Merijn Brand. And L<Text::CSV_PP>
+the B<binary mode>. This XS version is maintained by H.Merijn Brand and L<Text::CSV_PP>
 written by Makamaka was pure-Perl version of Text::CSV_XS.
 
 Now, Text::CSV was rewritten by Makamaka and become a wrapper to Text::CSV_XS or Text::CSV_PP.
 Text::CSV_PP will be bundled in this distribution.
 
-When you use Text::CSV, it calls other worker module - L<Text::CSV_XS> or L<Text::CSV_PP>.
+When you use Text::CSV, it calls a backend worker module - L<Text::CSV_XS> or L<Text::CSV_PP>.
 By default, Text::CSV tries to use Text::CSV_XS which must be complied and installed properly.
 If this call is fail, Text::CSV uses L<Text::CSV_PP>.
 
 The required Text::CSV_XS version is I<0.32> in Text::CSV version 1.00.
 
-If you set an enviornment variable C<TEXT_CSV_XS>, The calling action will be changed.
+If you set an enviornment variable C<PERL_TEXT_CSV>, The calling action will be changed.
 
 =over
 
-=item TEXT_CSV_XS == 0
+=item PERL_TEXT_CSV = 0
+
+=item PERL_TEXT_CSV = 'Text::CSV_PP'
 
 Always use Text::CSV_PP
 
-=item TEXT_CSV_XS == 1
+=item PERL_TEXT_CSV = 1
+
+=item PERL_TEXT_CSV = 'Text::CSV_XS,Text::CSV_PP'
 
 (The default) Use compiled Text::CSV_XS if it is properly compiled & installed,
 otherwise use Text::CSV_PP
 
-=item TEXT_CSV_XS == 2
+=item PERL_TEXT_CSV = 2
+
+=item PERL_TEXT_CSV = 'Text::CSV_XS'
 
 Always use compiled Text::CSV_XS, die if it isn't properly compiled & installed.
 
@@ -363,8 +350,11 @@ These ideas come from L<DBI::PurePerl> mechanism.
 
 example:
 
- BEGIN { $ENV{TEXT_CSV_XS} = 0 }
- use Text::CSV; # always uses Text::CSV_PP
+  BEGIN { $ENV{PERL_TEXT_CSV} = 0 }
+  use Text::CSV; # always uses Text::CSV_PP
+
+
+In future, it may be able to specify another module.
 
 
 =head2 BINARY MODE
@@ -385,8 +375,8 @@ See to L<Text::CSV_XS/SPECIFICATION>.
 
 =head1 FUNCTIONS
 
-These methods are common between XS and puer-Perl.
-Most of the documentation was shamelessly copied and replaced from Text::CSV_XS.
+These methods are common between XS and puer Perl version.
+Most of the document was shamelessly copied and replaced from Text::CSV_XS.
 
 =over 4
 
@@ -786,10 +776,6 @@ Returns true value if Text::CSV or the object uses XS module as worker.
 
 Returns true value if Text::CSV or the object uses pure-Perl module as worker.
 
-=item is_dynamic
-
-Returns true value if Text::CSV is called with dynamic mode.
-
 
 =back
 
@@ -805,30 +791,6 @@ This function changes depending on the used module (XS or PurePerl).
 
 See to L<Text::CSV_XS/DIAGNOSTICS> and L<Text::CSV_PP/DIAGNOSTICS>.
 
-
-=head1 DYNAMIC MODE
-
-When Text::CSV is installed, used worker module's methods are
-copied into Text::CSV symbol tables.
-
-But If you C<use> Text::CSV specifying C<-dynamic>, you can set C<module> option
-in C<new> which changes the worker module.
-
- use Text::CSV -dynamic; # the worker module is Text:CSV_XS
-
- my $csv = Text::CSV->new({module => 'Text::CSV_PP'});
-
-
-C<$csv> used Text::CSV_PP. This feature is so experimental that may be removed.
-
-Note:
-
- %attr = (module => 'Text::CSV_PP');
- my $csv = Text::CSV->new(\%attr);
-
-The hash key 'module' is C<delete>d in C<new()>, so it is also deleted from %attr.
-
-If you specify 'module' in non-dynamic mode, Text::CSV C<croak>s.
 
 =head1 TODO
 
@@ -849,8 +811,6 @@ But how about it - calling worker module object?
      $self->{_WORKER_OBJECT}->parse(@_); # XS or PP CSV object
  }
 
-In version 0.99_05, 'dynamic mode' was introduced experimentally.
-See to L</DYNAMIC MODE>
 
 
 =item Simple option
@@ -901,7 +861,7 @@ completed the documentation, fixed some RT bugs. See ChangeLog releases
 0.25 and on.
 
 Makamaka Hannyaharamitu, E<lt>makamaka[at]cpan.orgE<gt> wrote Text::CSV_PP
-which is pure perl version of Text::CSV_XS.
+which is the pure-Perl version of Text::CSV_XS.
 
 New Text::CSV (since 0.99) is maintained by Makamaka.
 
