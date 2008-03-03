@@ -5,7 +5,7 @@ use strict;
 use Carp ();
 
 BEGIN {
-    $Text::CSV::VERSION = '1.00';
+    $Text::CSV::VERSION = '1.01';
     $Text::CSV::DEBUG   = 0;
 }
 
@@ -24,7 +24,7 @@ my $Install_Only     = 2; # Don't call _set_methods()
 my @PublicMethods = qw/
     version types quote_char escape_char sep_char eol always_quote binary allow_whitespace
     keep_meta_info allow_loose_quotes allow_loose_escapes verbatim meta_info is_quoted is_binary eof
-    getline print parse combine fields string error_diag error_input status
+    getline print parse combine fields string error_diag error_input status blank_is_undef
     PV IV NV
 /;
 
@@ -126,7 +126,11 @@ sub _new_dynamic {
 
 sub new { # normal mode
     my $proto = shift;
-    my $class = ref($proto) || $proto or return;
+    my $class = ref($proto) || $proto;
+
+    unless ( $proto ) { # for Text::CSV_XS/PP::new(0);
+        return eval qq| $Text::CSV::Worker\::new( \$proto ) |;
+    }
 
     if (ref $_[0] and $_[0]->{module}) {
         Carp::croak("Can't set 'module' in non dynamic mode.");
@@ -422,8 +426,39 @@ lines like:
   1 , "foo" , bar , 3 , zapp
 
 are now correctly parsed, even though it violates the CSV specs.
+Note that B<all> whitespace is stripped from start and end of each
+field. That would make is more a I<feature> than a way to be able
+to parse bad CSV lines, as
+
+ 1,   2.0,  3,   ape  , monkey
+
+will now be parsed as
+
+ ("1", "2.0", "3", "ape", "monkey")
+
+even if the original line was perfectly sane CSV.
 
 See to L<Text::CSV_XS>.
+
+=item blank_is_undef
+
+Under normal circumstances, CSV data makes no distinction between
+quoted- and unquoted empty fields. They both end up in an empty
+string field once read, so
+
+ 1,"",," ",2
+
+is read as
+
+ ("1", "", "", " ", "2")
+
+When I<writing> CSV files with C<always_quote> set, the unquoted empty
+field is the result of an undefined value. To make it possible to also
+make this distinction when reading CSV data, the C<blank_is_undef> option
+will cause unquoted empty fields to be set to undef, causing the above to
+be parsed as
+
+  ("1", "", undef, " ", "2")
 
 =item quote_char
 
@@ -529,6 +564,7 @@ is equivalent to
      allow_loose_quotes  => 0,
      allow_loose_escapes => 0,
      allow_whitespace    => 0,
+     blank_is_undef      => 0,
      verbatim            => 0,
  });
 
@@ -542,6 +578,16 @@ the value
 It is unwise to change these settings halfway through writing CSV
 data to a stream. If however, you want to create a new stream using
 the available CSV object, there is no harm in changing them.
+
+If the C<new ()> constructor call fails, it returns C<undef>, and makes
+the fail reason available through the C<error_diag ()> method.
+
+ $csv = Text::CSV_PP->new ({ ecs_char => 1 }) or
+     die Text::CSV_PP->error_diag ();
+
+C<error_diag ()> will return a string like
+
+ "Unknown attribute 'ecs_char'"
 
 =item combine
 
@@ -828,6 +874,7 @@ is equivalent to
      allow_loose_quotes  => 1,
      allow_loose_escapes => 1,
      allow_whitespace    => 1,
+     blank_is_undef      => 1,
  });
 
 Is it needless?
@@ -871,17 +918,17 @@ New Text::CSV (since 0.99) is maintained by Makamaka.
 Text::CSV
 
 Copyright (C) 1997 Alan Citterman. All rights reserved.
-Copyright (C) 2007 Makamaka Hannyaharamitu.
+Copyright (C) 2007-2008 Makamaka Hannyaharamitu.
 
 
 Text::CSV_PP:
 
-Copyright (C) 2005-2007 Makamaka Hannyaharamitu.
+Copyright (C) 2005-2008 Makamaka Hannyaharamitu.
 
 
 Text:CSV_XS:
 
-Copyright (C) 2007-2007 H.Merijn Brand for PROCURA B.V.
+Copyright (C) 2007-2008 H.Merijn Brand for PROCURA B.V.
 Copyright (C) 1998-2001 Jochen Wiedmann. All rights reserved.
 Portions Copyright (C) 1997 Alan Citterman. All rights reserved.
 

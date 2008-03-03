@@ -1,5 +1,13 @@
 Revision history for Perl extension Text::CSV.
 
+1.01  Tue Mar  4 02:33:28 2008
+	- updated the compatibilities for Text::CSV_XS version 0.35
+	    * diagnostics for failed new ()
+	    * 'blank_is_undef' option
+	    * enhanced the error messages
+	- updated docs
+	- fixed allow_whitespace()
+        - modifiled t/80_diag.t for overloaded error object.
 
 1.00  Wed Nov 28 14:28:30 2007
 	- renamed $ENV{TEXT_CSV_XS} to $ENV{PERL_TEXT_CSV}
