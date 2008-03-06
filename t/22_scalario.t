@@ -24,8 +24,6 @@ BEGIN {
     plan skip_all => "Cannot load Text::CSV" if $@;
     }
 
-use IO::Handle;
-
 my $io;
 my $io_str;
 my $csv = Text::CSV->new ();

@@ -5,7 +5,7 @@ use strict;
 use Carp ();
 
 BEGIN {
-    $Text::CSV::VERSION = '1.01';
+    $Text::CSV::VERSION = '1.02';
     $Text::CSV::DEBUG   = 0;
 }
 
@@ -386,11 +386,11 @@ Most of the document was shamelessly copied and replaced from Text::CSV_XS.
 
 =item version
 
-(Class method) Returns the current module version. Not worker module version.
-If you want the worker module version, you can use C<module> method.
-
- print Text::CSV->version;         # This module version
- print Text::CSV->module->version; # The version of the worker module
+(Class method) Returns the current worker module version.
+If you want the module version, you can use the C<VERSION> method,
+ print Text::CSV->VERSION;      # This module version
+ print Text::CSV->version;      # The version of the worker module
+                                # same as Text::CSV->module->version
 
 =item new(\%attr)
 

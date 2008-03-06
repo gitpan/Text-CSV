@@ -1,5 +1,12 @@
 Revision history for Perl extension Text::CSV.
 
+1.02  Fri Mar  7 07:37:11 2008
+	- updated the compatibility for Text::CSV_XS version 0.36
+	    * auto-load IO::Handle when needed
+	- fixed version() and its doc (Text::CSV and Text::CSV_PP).
+	    Text::CSV->version returns the worker module version.
+            Thanks to Robin Barker's patche.
+
 1.01  Tue Mar  4 02:33:28 2008
 	- updated the compatibilities for Text::CSV_XS version 0.35
 	    * diagnostics for failed new ()

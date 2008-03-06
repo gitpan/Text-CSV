@@ -11,7 +11,7 @@ use strict;
 use vars qw($VERSION);
 use Carp ();
 
-$VERSION = '1.09';
+$VERSION = '1.10';
 
 sub PV  { 0 }
 sub IV  { 1 }
@@ -436,19 +436,23 @@ sub _make_regexp_split_column_allow_sp {
 sub print {
     my ($self, $io, $cols) = @_;
 
+    require IO::Handle;
+
     if(ref($cols) ne 'ARRAY'){
         Carp::croak("Expected fields to be an array ref");
     }
 
     $self->combine(@$cols) or return '';
 
-    print $io $self->string;
+    $io->print( $self->string );
 }
 ################################################################################
 # getline
 ################################################################################
 sub getline {
-    my ($self,$io) = @_;
+    my ($self, $io) = @_;
+
+    require IO::Handle;
 
     $self->{_EOF} = eof($io) ? 1 : '';
 
@@ -633,8 +637,7 @@ See to L<Text::CSV_XS>.
 
 =item version ()
 
-(Class method) Returns the current module version. Not worker module version.
-If you want the worker module version, you can use C<module> method.
+(Class method) Returns the current module version. 
 
 =item new(\%attr)
 
