@@ -3,7 +3,7 @@
 use strict;
 $^W = 1;
 
- use Test::More tests => 61;
+ use Test::More tests => 71;
 #use Test::More "no_plan";
 
 my %err;
@@ -22,8 +22,8 @@ BEGIN {
 
 $| = 1;
 
-my $csv = (Text::CSV->new ({ escape_char => "+", eol => "\n" }));
-is (Text::CSV::error_diag (), "",	"Last failure for new () - OK");
+my $csv = Text::CSV->new ();
+is (Text::CSV::error_diag() . '', "",	"Last failure for new () - OK");
 
 sub parse_err ($$)
 {
@@ -31,14 +31,21 @@ sub parse_err ($$)
     my $s_err = $err{$n_err};
     my $STR = _readable ($str);
     is ($csv->parse ($str), 0, "parse ('$STR')");
-    is ($csv->error_diag () + 0,  $n_err, "Diag in numerical context");
-    is ($csv->error_diag () . '', $s_err, "Diag in string context");
+    is ($csv->error_diag () + 0, $n_err, "Diag in numerical context");
+    is ($csv->error_diag () . '',$s_err, "Diag in string context");
     my ($c_diag, $s_diag) = $csv->error_diag ();
     is ($c_diag, $n_err,	"Num diag in list context");
     is ($s_diag, $s_err,	"Str diag in list context");
     } # parse_err
 
-is ($csv->error_diag (), undef,		"No errors yet");
+#parse_err 2023, qq{2023,",2008-04-05,"Foo, Bar",\n};
+# a difference between PP and XS
+parse_err 2027, qq{2027,",2008-04-05,"Foo, Bar",\n};
+
+$csv = Text::CSV->new ({ escape_char => "+", eol => "\n" });
+# why undef only here?
+#is ($csv->error_diag (), undef,		"No errors yet");
+is ($csv->error_diag () . '', '',		"No errors yet");
 
 parse_err 2010, qq{"x"\r};
 parse_err 2011, qq{"x"x};
@@ -57,7 +64,30 @@ diag ("Next line should be an error message");
 $csv->error_diag ();
 
 is (Text::CSV->new ({ ecs_char => ":" }), undef, "Unsupported option");
-is (Text::CSV::error_diag (), "Unknown attribute 'ecs_char'",
+
+is (Text::CSV::error_diag() . '', "Unknown attribute 'ecs_char'",
 					"Last failure for new () - FAIL");
-is (Text::CSV->error_diag (), "Unknown attribute 'ecs_char'",
+is (Text::CSV->error_diag() . '', "Unknown attribute 'ecs_char'",
 					"Last failure for new () - FAIL");
+is (Text::CSV::error_diag (bless {}, "Foo") . '', "Unknown attribute 'ecs_char'",
+					"Last failure for new () - FAIL");
+
+package Text::CSV::Subclass;
+
+use base "Text::CSV";
+
+use Test::More;
+
+ok (1, "Subclassed");
+
+my $csvs = Text::CSV::Subclass->new ();
+is ($csvs->error_diag() . '', "",		"Last failure for new () - OK");
+
+is (Text::CSV::Subclass->new ({ ecs_char => ":" }), undef, "Unsupported option");
+
+is (Text::CSV::Subclass->error_diag()  . '',
+    "Unknown attribute 'ecs_char'",	"Last failure for new () - FAIL");
+
+1;
+
+__END__

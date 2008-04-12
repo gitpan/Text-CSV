@@ -4,10 +4,9 @@ use strict;
 $^W = 1;
 
 #use Test::More "no_plan";
- use Test::More tests => 52;
+ use Test::More tests => 69;
 
 BEGIN {
-    $ENV{PERL_TEXT_CSV} = 0;
     use_ok "Text::CSV", ();
     plan skip_all => "Cannot load Text::CSV" if $@;
     }
@@ -91,6 +90,29 @@ while (<DATA>) {
     is ($fld[1], "It's an apostrophee", "Content field 2");
     }
 
+{   # http://rt.cpan.org/Ticket/Display.html?id=34474
+    # 34474: wish: integrate row-as-hashref feature from Parse::CSV
+    open  FH, ">_test.csv";
+    print FH @{$input{34474}};
+    close FH;
+    ok (my $csv = Text::CSV->new (),		"RT-34474: getline_hr ()");
+    is ($csv->column_names, undef,		"No headers yet");
+    open  FH, "<_test.csv";
+    my $row;
+    ok ($row = $csv->getline (*FH),		"getline headers");
+    is ($row->[0], "code",			"Header line");
+    $csv->column_names (@$row);
+    is_deeply ([ $csv->column_names ], [ @$row ], "Keys set");
+    while (my $hr = $csv->getline_hr (*FH)) {
+	ok (exists $hr->{code},			"Line has a code field");
+	like ($hr->{code}, qr/^[0-9]+$/,	"Code is numeric");
+	ok (exists $hr->{name},			"Line has a name field");
+	like ($hr->{name}, qr/^[A-Z][a-z]+$/,	"Name");
+	}
+    close FH;
+    unlink "_test.csv";
+    }
+
 __END__
 «24386» - \t doesn't work in _XS, works in _PP
 VIN	StockNumber	Year	Make	Model	MD	Engine	EngineSize	Transmission	DriveTrain	Trim	BodyStyle	CityFuel	HWYFuel	Mileage	Color	InteriorColor	InternetPrice	RetailPrice	Notes	ShortReview	Certified	NewUsed	Image_URLs	Equipment
@@ -111,3 +133,8 @@ VIN	StockNumber	Year	Make	Model	MD	Engine	EngineSize	Transmission	DriveTrain	Tri
 ",~"~,~""~,~"""~,,~~,
 «15076» - escape_char before characters that do not need to be escaped.
 "Example";"It\'s an apostrophee"
+«34474» - wish: integrate row-as-hashref feature from Parse::CSV
+code,name,price,description
+1,Dress,240.00,"Evening gown"
+2,Drinks,82.78,"Drinks"
+3,Sex,-9999.99,"Priceless"

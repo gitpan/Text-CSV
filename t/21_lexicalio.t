@@ -8,18 +8,18 @@ use Test::More;
 
 BEGIN {
     if ($] < 5.006) {
-	plan skip_all => "No lexical file handles in in this ancient perl version";
-	}
-    else {
-	plan tests => 82;
-	}
+        plan skip_all => "No lexical file handles in in this ancient perl version";
     }
+    else {
+        plan tests => 82;
+    }
+}
 
 BEGIN {
     $ENV{PERL_TEXT_CSV} = 0;
     use_ok "Text::CSV";
     plan skip_all => "Cannot load Text::CSV" if $@;
-    }
+}
 
 my $io;
 my $csv = Text::CSV->new ();

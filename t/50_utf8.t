@@ -7,19 +7,19 @@ use Test::More;
 
 BEGIN {
     if ($] < 5.008) {
-	plan skip_all => "UTF8 tests useless in this ancient perl version";
-	}
-    else {
-	plan tests => 57;
-	}
+        plan skip_all => "UTF8 tests useless in this ancient perl version";
     }
+    else {
+        plan tests => 57;
+    }
+}
 
 BEGIN {
     $ENV{PERL_TEXT_CSV} = 0;
     require_ok "Text::CSV";
     plan skip_all => "Cannot load Text::CSV" if $@;
     require "t/util.pl";
-    }
+}
 
 my $csv = Text::CSV->new ({ binary => 1, always_quote => 1 });
 

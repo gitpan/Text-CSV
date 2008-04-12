@@ -10,7 +10,7 @@ BEGIN {
     $ENV{PERL_TEXT_CSV} = 0;
     use_ok "Text::CSV";
     plan skip_all => "Cannot load Text::CSV" if $@;
-    }
+}
 
 my $csv = Text::CSV->new ();
 
@@ -66,7 +66,7 @@ ok ($csv->print (*FH, [ "id", "name"			]), "Bad character");
 ok ($csv->print (*FH, [   1,  "Alligator Descartes"	]), "Name 1");
 ok ($csv->print (*FH, [  "3", "Jochen Wiedmann"		]), "Name 2");
 ok ($csv->print (*FH, [   2,  "Tim Bunce"		]), "Name 3");
-ok ($csv->print (*FH, [ " 4", "Andreas K¡¦ig"		]), "Name 4");
+ok ($csv->print (*FH, [ " 4", "Andreas König"		]), "Name 4");
 ok ($csv->print (*FH, [   5				]), "Name 5");
 close FH;
 
@@ -75,7 +75,7 @@ id,name\015
 1,"Alligator Descartes"\015
 3,"Jochen Wiedmann"\015
 2,"Tim Bunce"\015
-" 4","Andreas K¡¦ig"\015
+" 4","Andreas König"\015
 5\015
 CONTENTS
 

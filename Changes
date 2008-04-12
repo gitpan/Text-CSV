@@ -1,5 +1,12 @@
 Revision history for Perl extension Text::CSV.
 
+1.03  Fri Apr 11 17:39:12 2008
+	- updated the compatibility for Text::CSV_XS version 0.41
+	    getline_hr, column_names, bind_columns
+	- Makefile.PL requires Perl versoin from 5.005 to 5.00503.
+	- fixed combine() for quoting binary chars.
+	- updated the document as same as Text::CSV_XS 0.41.
+
 1.02  Fri Mar  7 07:37:11 2008
 	- updated the compatibility for Text::CSV_XS version 0.36
 	    * auto-load IO::Handle when needed

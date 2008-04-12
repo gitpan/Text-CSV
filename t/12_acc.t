@@ -9,7 +9,7 @@ BEGIN {
     $ENV{PERL_TEXT_CSV} = 0;
     use_ok "Text::CSV";
     plan skip_all => "Cannot load Text::CSV" if $@;
-    }
+}
 
 my $csv;
 ok ($csv = Text::CSV->new,				"new ()");
@@ -65,15 +65,15 @@ $csv->escape_char ("\\");
 ok (!$csv->parse ("foo,foo\0bar"),		"parse (foo)");
 $csv->binary (1);
 ok ( $csv->parse ("foo,foo\0bar"),		"parse (foo)");
-#print $csv->error_diag, "\n";
+
 # And test erroneous calls
 
 is (Text::CSV::new (0),		   undef,	"new () as function");
-is (Text::CSV::error_diag (), "usage: my \$csv = Text::CSV_PP->new ([{ option => value, ... }]);",
+is (Text::CSV::error_diag () . '', "usage: my \$csv = Text::CSV_PP->new ([{ option => value, ... }]);",
 							"Generic usage () message");
 is (Text::CSV->new ({ oel     => "" }), undef,	"typo in attr");
-is (Text::CSV::error_diag (), "Unknown attribute 'oel'",	"Unsupported attr");
+is (Text::CSV::error_diag () . '', "Unknown attribute 'oel'",	"Unsupported attr");
 is (Text::CSV->new ({ _STATUS => "" }), undef,	"private attr");
-is (Text::CSV::error_diag (), "Unknown attribute '_STATUS'",	"Unsupported private attr");
+is (Text::CSV::error_diag () . '', "Unknown attribute '_STATUS'",	"Unsupported private attr");
 
 1;

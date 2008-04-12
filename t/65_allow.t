@@ -4,17 +4,16 @@ use strict;
 $^W = 1;
 
 #use Test::More "no_plan";
- use Test::More tests => 794;
+ use Test::More tests => 803;
 
 BEGIN {
     $ENV{PERL_TEXT_CSV} = 0;
     use_ok "Text::CSV", ();
     plan skip_all => "Cannot load Text::CSV" if $@;
     require "t/util.pl";
-    }
+}
 
 my $csv;
-
 
 ok (1, "Allow unescaped quotes");
 # Allow unescaped quotes inside an unquoted field
@@ -66,7 +65,7 @@ ok (1, "Allow loose escapes");
 	$csv->allow_loose_escapes (1);
 	if ($tst >= 8) {
 	    # Should always fail
-	    ok (!$csv->parse ($bad),	"$tst - parse () pass");
+	    ok (!$csv->parse ($bad),	"$tst - parse () fail");
 	    }
 	else {
 	    ok ($csv->parse ($bad),	"$tst - parse () pass");
@@ -155,12 +154,11 @@ ok (1, "Allow whitespace");
 	}
     }
 
-
 ok (1, "blank_is_undef");
 foreach my $conf (
 	[ 0, 0, 0,	1, "",    " ", '""', 2, "",    "",    ""	],
 	[ 0, 0, 1,	1, undef, " ", '""', 2, undef, undef, undef	],
-	[ 0, 1, 0,	1, "",    " ", '""', 2, "",    "",    ""	], # error
+	[ 0, 1, 0,	1, "",    " ", '""', 2, "",    "",    ""	],
 	[ 0, 1, 1,	1, undef, " ", '""', 2, undef, undef, undef	],
 	[ 1, 0, 0,	1, "",    " ", '""', 2, "",    "",    ""	],
 	[ 1, 0, 1,	1, "",    " ", '""', 2, undef, "",    undef	],
@@ -179,7 +177,6 @@ foreach my $conf (
 	is_deeply (\@f, \@expect,	"result");
 	}
     }
-
 
 ok (1, "Trailing junk");
 foreach my $bin (0, 1) {
@@ -264,7 +261,6 @@ foreach my $bin (0, 1) {
 	}
 
     ok (1, "verbatim on getline (*FH)");
-
     open  FH, ">_test.csv";
     print FH @str, "M^Abe^*\r\n";
     close FH;
@@ -290,6 +286,38 @@ foreach my $bin (0, 1) {
     is (@$row, 3,				"#\\r\\n $gc fields");
     is ($row->[2], "*\r\n",			"#\\r\\n $gc fld 2");
 
+    close FH;
+    unlink "_test.csv";
+    }
+
+{   ok (1, "keep_meta_info on getline ()");
+
+    my $csv = Text::CSV->new ({ eol => "\n" });
+
+    open  FH, ">_test.csv";
+    print FH qq{1,"",,"Q",2\n};
+    close FH;
+
+    is ($csv->keep_meta_info (0), 0,		"No meta info");
+    open  FH, "<_test.csv";
+    my $row = $csv->getline (*FH);
+    ok ($row,					"Get 1st line");
+    $csv->error_diag ();
+    is ($csv->is_quoted (2), undef,		"Is field 2 quoted?");
+    is ($csv->is_quoted (3), undef,		"Is field 3 quoted?");
+    close FH;
+
+    open  FH, ">_test.csv";
+    print FH qq{1,"",,"Q",2\n};
+    close FH;
+
+    is ($csv->keep_meta_info (1), 1,		"Keep meta info");
+    open  FH, "<_test.csv";
+    $row = $csv->getline (*FH);
+    ok ($row,					"Get 2nd line");
+    $csv->error_diag ();
+    is ($csv->is_quoted (2), 0,			"Is field 2 quoted?");
+    is ($csv->is_quoted (3), 1,			"Is field 3 quoted?");
     close FH;
     unlink "_test.csv";
     }

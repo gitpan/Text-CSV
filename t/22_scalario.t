@@ -9,20 +9,20 @@ use Test::More;
 
 BEGIN {
     unless (exists  $Config{useperlio} &&
-	    defined $Config{useperlio} &&
-	    $Config{useperlio} eq "define") {
-	plan skip_all => "No perlIO available";
-	}
-    else {
-	plan tests => 82;
-	}
+        defined $Config{useperlio} &&
+        $Config{useperlio} eq "define") {
+        plan skip_all => "No perlIO available";
     }
+    else {
+        plan tests => 82;
+    }
+}
 
 BEGIN {
     $ENV{PERL_TEXT_CSV} = 0;
     use_ok "Text::CSV";
     plan skip_all => "Cannot load Text::CSV" if $@;
-    }
+}
 
 my $io;
 my $io_str;
