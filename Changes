@@ -1,5 +1,12 @@
 Revision history for Perl extension Text::CSV.
 
+1.04  Tue Apr 22 16:01:19 2008
+	- updated the compatibility for Text::CSV_XS version 0.43
+	    * parse errors try to remember failing position
+              (but in using PP version backend, it is usually helpless)
+	- fix a serious bug with setter methods.
+	    all setter methods couldn't take undef value...
+
 1.03  Fri Apr 11 17:39:12 2008
 	- updated the compatibility for Text::CSV_XS version 0.41
 	    getline_hr, column_names, bind_columns
