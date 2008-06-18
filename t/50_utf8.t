@@ -7,21 +7,27 @@ use Test::More;
 
 BEGIN {
     if ($] < 5.008) {
-        plan skip_all => "UTF8 tests useless in this ancient perl version";
-    }
+	plan skip_all => "UTF8 tests useless in this ancient perl version";
+	}
     else {
-        plan tests => 57;
+	plan tests => 67;
+	}
     }
-}
 
 BEGIN {
     $ENV{PERL_TEXT_CSV} = 0;
     require_ok "Text::CSV";
     plan skip_all => "Cannot load Text::CSV" if $@;
+#    require_ok "Text::CSV_XS";
+#    plan skip_all => "Cannot load Text::CSV_XS" if $@;
     require "t/util.pl";
-}
+    }
 
-my $csv = Text::CSV->new ({ binary => 1, always_quote => 1 });
+# No binary => 1, as UTF8 is supposed to be allowed without it
+my $csv = Text::CSV->new ({
+    always_quote   => 1,
+    keep_meta_info => 1,
+    });
 
 # Special characters to check:
 # 0A = \n  2C = ,  20 =     22 = "  
@@ -41,7 +47,7 @@ foreach my $test (
   #  characters in 128..255
   ) {
     my ($u, $msg) = @$test;
-    utf8::encode ($u);
+    ($u = "$u\x{0123}") =~ s/.$//;	# Make sure it's marked UTF8
     my @in  = ("", " ", $u, "");
     my $exp = join ",", map { qq{"$_"} } @in;
 
@@ -57,4 +63,29 @@ foreach my $test (
     for (0 .. $#in) {
 	is_binary ($in[$_], $out[$_],	"field $_ $msg");
 	}
+    }
+
+# Test if the UTF8 part is accepted, but the \n is not
+is ($csv->parse (qq{"\x{0123}\n\x{20ac}"}), 0, "\\n still needs binary");
+is ($csv->binary, 0, "bin flag still unset");
+is ($csv->error_diag + 0, 2021, "Error 2021");
+
+# As all utf tests are skipped for older pers, It's safe to use 3-arg open this way
+my $file = "files/utf8.csv";
+SKIP: {
+    open my $fh, "<:encoding(utf8)", $file or
+	skip "Cannot open UTF-8 test file", 6;
+
+    my $row;
+    ok ($row = $csv->getline ($fh), "read/parse");
+
+    is ($csv->is_quoted (0),	1,	"First  field is quoted");
+    is ($csv->is_quoted (1),	0,	"Second field is not quoted");
+    is ($csv->is_binary (0),	1,	"First  field is binary");
+    is ($csv->is_binary (1),	0,	"Second field is not binary");
+
+    ok (utf8::valid ($row->[0]),	"First field is valid utf8");
+
+    $csv->combine (@$row);
+    ok (utf8::valid ($csv->string),	"Combined string is valid utf8");
     }

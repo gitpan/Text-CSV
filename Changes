@@ -1,5 +1,11 @@
 Revision history for Perl extension Text::CSV.
 
+1.06  Wed Jun 18 14:35:40 2008
+	- updated the compatibility for Text::CSV_XS version 0.51
+	    * set binary => 1 when UTF8 flag marked.
+	    * removed the max of 255 for bind_columns.
+	- made the value type of $csv->{_STRING} corresponding to XS.
+
 1.05  Fri May  2 13:15:49 2008
 	- fixed quoting process in combine.
 	    because of using bytes.pm, added a dummy for Perl 5.005
