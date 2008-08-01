@@ -11,7 +11,7 @@ use strict;
 use vars qw($VERSION);
 use Carp ();
 
-$VERSION = '1.14';
+$VERSION = '1.15';
 
 sub PV  { 0 }
 sub IV  { 1 }
@@ -478,7 +478,12 @@ sub _parse {
 
 sub _make_regexp_split_column {
     my ($esc, $quot, $sep) = @_;
-    qr/(
+
+    if ( $quot eq '' ) {
+        return qr/([^\Q$sep\E]*)\Q$sep\E/s;
+    }
+
+   qr/(
         \Q$quot\E
             [^\Q$quot$esc\E]*(?:\Q$esc\E[\Q$quot$esc\E0][^\Q$quot$esc\E]*)*
         \Q$quot\E
@@ -492,6 +497,11 @@ sub _make_regexp_split_column {
 
 sub _make_regexp_split_column_allow_sp {
     my ($esc, $quot, $sep) = @_;
+
+    if ( $quot eq '' ) {
+        return qr/[\x20\x09]*([^\Q$sep\E]?)[\x20\x09]*\Q$sep\E[\x20\x09]*/s;
+    }
+
     qr/[\x20\x09]*
        (
         \Q$quot\E
@@ -589,25 +599,24 @@ sub getline_hr {
 # column_names
 ################################################################################
 sub column_names {
-    my ( $self, @clumns ) = @_;
+    my ( $self, @columns ) = @_;
 
-    @clumns or return defined $self->{_COLUMN_NAMES} ? @{$self->{_COLUMN_NAMES}} : undef;
-    @clumns == 1 && ! defined $clumns[0] and return $self->{_COLUMN_NAMES} = undef;
+    @columns or return defined $self->{_COLUMN_NAMES} ? @{$self->{_COLUMN_NAMES}} : undef;
+    @columns == 1 && ! defined $columns[0] and return $self->{_COLUMN_NAMES} = undef;
 
-    if ( @clumns == 1 && ref $clumns[0] eq "ARRAY" ) {
-        @clumns = @{ $clumns[0] };
+    if ( @columns == 1 && ref $columns[0] eq "ARRAY" ) {
+        @columns = @{ $columns[0] };
     }
-    elsif ( join "", map { defined $_ ? ref $_ : "UNDEF" } @clumns ) {
+    elsif ( join "", map { defined $_ ? ref $_ : "" } @columns ) {
         $self->SetDiag( 3001 );
     }
 
-    if ( $self->{_is_bound} && @clumns != $self->{_is_bound} ) {
+    if ( $self->{_BOUND_COLUMNS} && @columns != @{$self->{_BOUND_COLUMNS}} ) {
         $self->SetDiag( 3003 );
     }
 
-    $self->{_COLUMN_NAMES} = [ @clumns ];
-
-    @clumns;
+    $self->{_COLUMN_NAMES} = [ map { defined $_ ? $_ : "\cAUNDEF\cA" } @columns ];
+    @{ $self->{_COLUMN_NAMES} };
 }
 ################################################################################
 # bind_columns
@@ -1148,6 +1157,16 @@ C<column_names ()> accepts a list of scalars (the column names) or a
 single array_ref, so you can pass C<getline ()>
 
   $csv->column_names ($csv->getline ($io));
+
+C<column_names ()> does B<no> checking on duplicates at all, which might
+lead to unwanted results. Undefined entries will be replaced with the
+string C<"\cAUNDEF\cA">, so
+
+  $csv->column_names (undef, "", "name", "name");
+  $hr = $csv->getline_hr ($io);
+
+Will set C<$hr->{"\cAUNDEF\cA"}> to the 1st field, C<$hr->{""}> to the
+2nd field, and C<$hr->{name}> to the 4th field, discarding the 2rd field.
 
 C<column_names ()> croaks on invalid arguments.
 

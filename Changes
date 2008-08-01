@@ -1,5 +1,11 @@
 Revision history for Perl extension Text::CSV.
 
+1.07  Fri Aug  1 11:13:06 2008
+	- updated the compatibility for Text::CSV_XS version 0.52
+	    modified column_names()
+	- fixed a parsing bug with quote_char being undef
+	    pointed by Matt (rt#38083)
+
 1.06  Wed Jun 18 14:35:40 2008
 	- updated the compatibility for Text::CSV_XS version 0.51
 	    * set binary => 1 when UTF8 flag marked.

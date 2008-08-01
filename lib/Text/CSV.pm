@@ -5,14 +5,14 @@ use strict;
 use Carp ();
 
 BEGIN {
-    $Text::CSV::VERSION = '1.06';
+    $Text::CSV::VERSION = '1.07';
     $Text::CSV::DEBUG   = 0;
 }
 
 # if use CSV_XS, requires version
 my $Module_XS  = 'Text::CSV_XS';
 my $Module_PP  = 'Text::CSV_PP';
-my $XS_Version = '0.51';
+my $XS_Version = '0.52';
 
 my $Is_Dynamic = 0;
 
@@ -270,9 +270,9 @@ perhaps better called ASV (anything separated values) rather than just CSV.
 
 =head1 VERSION
 
-    1.06
+    1.07
 
-This module is compatible with Text::CSV_XS B<0.51> or later.
+This module is compatible with Text::CSV_XS B<0.52> or later.
 
 =head2 BINARY MODE
 
@@ -640,6 +640,16 @@ C<column_names ()> accepts a list of scalars (the column names) or a
 single array_ref, so you can pass C<getline ()>
 
   $csv->column_names ($csv->getline ($io));
+
+C<column_names ()> does B<no> checking on duplicates at all, which might
+lead to unwanted results. Undefined entries will be replaced with the
+string C<"\cAUNDEF\cA">, so
+
+  $csv->column_names (undef, "", "name", "name");
+  $hr = $csv->getline_hr ($io);
+
+Will set C<$hr->{"\cAUNDEF\cA"}> to the 1st field, C<$hr->{""}> to the
+2nd field, and C<$hr->{name}> to the 4th field, discarding the 2rd field.
 
 C<column_names ()> croaks on invalid arguments.
 
