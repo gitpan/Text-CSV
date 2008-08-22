@@ -22,6 +22,7 @@ t/55_combi.t		Different CSV character combinations
 t/60_samples.t		Miscellaneous problems from the modules history.
 t/65_allow.t		Allow bad formats
 t/70_rt.t		Tests based on RT reports (for Text::CSV_XS)
+t/71_pp.t		Tests for bug report fixes or patches (for Text::CSV_PP)
 t/75_hashref.t          getline_hr related tests
 t/76_magic.t            array_ref from magig (useless for Text::CSV_PP)
 t/80_diag.t		Error diagnostics

@@ -11,7 +11,7 @@ use strict;
 use vars qw($VERSION);
 use Carp ();
 
-$VERSION = '1.15';
+$VERSION = '1.16';
 
 sub PV  { 0 }
 sub IV  { 1 }
@@ -498,11 +498,18 @@ sub _make_regexp_split_column {
 sub _make_regexp_split_column_allow_sp {
     my ($esc, $quot, $sep) = @_;
 
+    # if separator is space or tab, don't count that separator
+    # as whitespace  --- patched by Mike O'Sullivan
+    my $ws = $sep eq ' '  ? '[\x09]'
+           : $sep eq "\t" ? '[\x20]'
+           : '[\x20\x09]'
+           ;
+
     if ( $quot eq '' ) {
-        return qr/[\x20\x09]*([^\Q$sep\E]?)[\x20\x09]*\Q$sep\E[\x20\x09]*/s;
+        return qr/$ws*([^\Q$sep\E]?)$ws*\Q$sep\E$ws*/s;
     }
 
-    qr/[\x20\x09]*
+    qr/$ws*
        (
         \Q$quot\E
             [^\Q$quot$esc\E]*(?:\Q$esc\E[\Q$quot$esc\E0][^\Q$quot$esc\E]*)*
@@ -510,7 +517,7 @@ sub _make_regexp_split_column_allow_sp {
         | # or
         [^\Q$sep\E]*?
        )
-       [\x20\x09]*\Q$sep\E[\x20\x09]*
+       $ws*\Q$sep\E$ws*
     /xs;
 }
 ################################################################################

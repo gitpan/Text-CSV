@@ -1,5 +1,9 @@
 Revision history for Perl extension Text::CSV.
 
+1.08  Fri Aug 22 11:21:38 2008
+	- fixed a bug in parsing tab separated values with allow_whitespace
+	    pointed by and thanks a patch to Mike O'Sullivan
+
 1.07  Fri Aug  1 11:13:06 2008
 	- updated the compatibility for Text::CSV_XS version 0.52
 	    modified column_names()
