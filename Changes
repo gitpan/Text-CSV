@@ -1,5 +1,13 @@
 Revision history for Perl extension Text::CSV.
 
+1.09  Fri Sep  5 11:34:00 2008
+	- updated the compatibility for Text::CSV_XS version 0.54
+	    * default eol for print is $\
+	    * fixed SetDiag(0)
+	    * IO failure in print
+
+	**** Text::CSV_PP doesn't support the error msg 2023 ****
+
 1.08  Fri Aug 22 11:21:38 2008
 	- fixed a bug in parsing tab separated values with allow_whitespace
 	    pointed by and thanks a patch to Mike O'Sullivan

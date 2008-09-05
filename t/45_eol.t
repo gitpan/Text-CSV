@@ -3,14 +3,14 @@
 use strict;
 $^W = 1;
 
-use Test::More tests => 128;
+use Test::More tests => 133;
 
 BEGIN {
     $ENV{PERL_TEXT_CSV} = 0;
     require_ok "Text::CSV";
     plan skip_all => "Cannot load Text::CSV" if $@;
     require "t/util.pl";
-}
+    }
 
 $| = 1;
 
@@ -67,6 +67,17 @@ foreach my $rs ("\n", "\r\n", "\r") {
 	}
 
     unlink "_eol.csv";
+    }
+
+{   my $csv = Text::CSV->new ({ escape_char => undef });
+
+    ok ($csv->parse (qq{"x"\r\n}), "Trailing \\r\\n with no escape char");
+
+    is ($csv->eol ("\r"), "\r", "eol set to \\r");
+    ok ($csv->parse (qq{"x"\r}),   "Trailing \\r with no escape char");
+
+    ok ($csv->allow_whitespace (1), "Allow whitespace");
+    ok ($csv->parse (qq{"x" \r}),  "Trailing \\r with no escape char");
     }
 
 ok (1, "Specific \\r test from tfrayner");

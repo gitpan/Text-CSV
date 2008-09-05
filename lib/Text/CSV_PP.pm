@@ -11,7 +11,7 @@ use strict;
 use vars qw($VERSION);
 use Carp ();
 
-$VERSION = '1.16';
+$VERSION = '1.17';
 
 sub PV  { 0 }
 sub IV  { 1 }
@@ -42,6 +42,8 @@ my $ERRORS = {
         2037 => "EIF - Binary character in unquoted field, binary off",
 
         2110 => "ECB - Binary character in Combine, binary off",
+
+        2200 => "EIO - print to IO failed. See errno",
 
         # PP Only Error
         4002 => "EIQ - Unescaped ESC in quoted field",
@@ -150,11 +152,11 @@ sub new {
 
     $last_new_error = '';
 
+    defined $\ and $self->{eol} = $\;
+
     bless $self, $class;
 
-    if(exists($self->{types})) {
-        $self->types($self->{types});
-    }
+    $self->types( $self->{types} ) if( exists( $self->{types} ) );
 
     return $self;
 }
@@ -360,6 +362,7 @@ sub _parse {
             else {
                 $self->_set_error_diag(
                       $col =~ /\Q$quot\E(.*)\Q$quot\E\r$/   ? (2010, $pos - 2)
+                    : $col =~ /\n/                          ? (2030, $pos - length $col)
                     : $col =~ /^\r/                         ? (2031, $pos - length $col)
                     : $col =~ /\r([^\r]*)/                  ? (2032, $pos - 1 - length $1)
                     : (2037, $pos - length $col) # Binary character in unquoted field, binary off
@@ -534,7 +537,7 @@ sub print {
 
     $self->_combine(@$cols) or return '';
 
-    $io->print( $self->_string );
+    $io->print( $self->_string ) or $self->_set_error_diag(2200);
 }
 ################################################################################
 # getline
@@ -740,6 +743,8 @@ BEGIN {
 sub SetDiag {
     if ( defined $_[1] and $_[1] == 0 ) {
         $_[0]->{_ERROR_DIAG} = undef;
+        $last_new_error = '';
+        return;
     }
 
     $_[0]->_set_error_diag( $_[1] );
@@ -1376,7 +1381,7 @@ or the escape character, as that will invalidate all parsing rules.
 
 =item 2027 "EIQ - Quoted field not terminated"
 
-=item 2030 "EIF - NL char inside unquoted verbatim, binary off",
+=item 2030 "EIF - NL char inside unquoted verbatim, binary off"
 
 =item 2031 "EIF - CR char is first char of field, not part of EOL",
 
@@ -1387,6 +1392,8 @@ or the escape character, as that will invalidate all parsing rules.
 =item 2037 "EIF - Binary character in unquoted field, binary off",
 
 =item 2110 "ECB - Binary character in Combine, binary off"
+
+=item 2200 "EIO - print to IO failed. See errno"
 
 =item 4002 "EIQ - Unescaped ESC in quoted field"
 

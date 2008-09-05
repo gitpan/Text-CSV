@@ -5,14 +5,14 @@ use strict;
 use Carp ();
 
 BEGIN {
-    $Text::CSV::VERSION = '1.08';
+    $Text::CSV::VERSION = '1.09';
     $Text::CSV::DEBUG   = 0;
 }
 
 # if use CSV_XS, requires version
 my $Module_XS  = 'Text::CSV_XS';
 my $Module_PP  = 'Text::CSV_PP';
-my $XS_Version = '0.52';
+my $XS_Version = '0.54';
 
 my $Is_Dynamic = 0;
 
@@ -270,9 +270,9 @@ perhaps better called ASV (anything separated values) rather than just CSV.
 
 =head1 VERSION
 
-    1.08
+    1.09
 
-This module is compatible with Text::CSV_XS B<0.52> or later.
+This module is compatible with Text::CSV_XS B<0.54> or later.
 
 =head2 BINARY MODE
 

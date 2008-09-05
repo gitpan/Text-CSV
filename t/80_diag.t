@@ -3,7 +3,7 @@
 use strict;
 $^W = 1;
 
- use Test::More tests => 84;
+ use Test::More tests => 86;
 #use Test::More "no_plan";
 
 my %err;
@@ -78,6 +78,10 @@ is (Text::CSV->error_diag() . '', "Unknown attribute 'ecs_char'",
 					"Last failure for new () - FAIL");
 is (Text::CSV::error_diag (bless {}, "Foo") . '', "Unknown attribute 'ecs_char'",
 					"Last failure for new () - FAIL");
+
+$csv->SetDiag (0);
+is (0 + $csv->error_diag (), 0,  "Reset error NUM");
+is (''. $csv->error_diag (), "", "Reset error NUM");
 
 package Text::CSV::Subclass;
 
