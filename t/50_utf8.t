@@ -18,8 +18,6 @@ BEGIN {
     $ENV{PERL_TEXT_CSV} = 0;
     require_ok "Text::CSV";
     plan skip_all => "Cannot load Text::CSV" if $@;
-#    require_ok "Text::CSV_XS";
-#    plan skip_all => "Cannot load Text::CSV_XS" if $@;
     require "t/util.pl";
     }
 

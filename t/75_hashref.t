@@ -10,8 +10,6 @@ BEGIN {
     $ENV{PERL_TEXT_CSV} = 0;
     use_ok "Text::CSV", ();
     plan skip_all => "Cannot load Text::CSV" if $@;
-#    use_ok "Text::CSV_XS", ();
-#    plan skip_all => "Cannot load Text::CSV_XS" if $@;
 }
 
 open  FH, ">_test.csv";

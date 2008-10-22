@@ -1,5 +1,12 @@
 Revision history for Perl extension Text::CSV.
 
+1.10  Wed Oct 22 02:34:03 2008
+	- updated the compatibility for Text::CSV_XS version 0.56
+	    * updated docs
+	    * setting eol with undef are treated as ""
+	    * in print method, don't print $\ twice
+	    * undef treated as 0 for boolean attributes
+
 1.09  Fri Sep  5 11:34:00 2008
 	- updated the compatibility for Text::CSV_XS version 0.54
 	    * default eol for print is $\

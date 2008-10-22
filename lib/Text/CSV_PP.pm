@@ -11,7 +11,7 @@ use strict;
 use vars qw($VERSION);
 use Carp ();
 
-$VERSION = '1.17';
+$VERSION = '1.18';
 
 sub PV  { 0 }
 sub IV  { 1 }
@@ -69,7 +69,7 @@ my %def_attr = (
     quote_char          => '"',
     escape_char         => '"',
     sep_char            => ',',
-    eol                 => '',
+    eol                 => defined $\ ? $\ : '',
     always_quote        => 0,
     binary              => 0,
     keep_meta_info      => 0,
@@ -537,6 +537,8 @@ sub print {
 
     $self->_combine(@$cols) or return '';
 
+    local $\ = '';
+
     $io->print( $self->_string ) or $self->_set_error_diag(2200);
 }
 ################################################################################
@@ -728,15 +730,21 @@ sub _set_error_diag {
 ################################################################################
 
 BEGIN {
-    for my $method (qw/quote_char escape_char sep_char eol always_quote binary allow_whitespace
+    for my $method (qw/quote_char escape_char sep_char always_quote binary allow_whitespace
                         keep_meta_info allow_loose_quotes allow_loose_escapes verbatim blank_is_undef/) {
         eval qq|
             sub $method {
-                \$_[0]->{$method} = \$_[1] if (\@_ > 1);
+                \$_[0]->{$method} = defined \$_[1] ? \$_[1] : 0 if (\@_ > 1);
                 \$_[0]->{$method};
             }
         |;
     }
+}
+
+
+sub eol {
+    $_[0]->{eol} = defined $_[1] ? $_[1] : '' if ( @_ > 1 );
+    $_[0]->{eol};
 }
 
 
@@ -850,9 +858,10 @@ Currently the following attributes are available:
 
 =item eol
 
-An end-of-line string to add to rows, usually C<undef> (nothing,
-default), C<"\012"> (Line Feed) or C<"\015\012"> (Carriage Return,
-Line Feed). Cannot be longer than 7 (ASCII) characters.
+An end-of-line string to add to rows. C<undef> is replaced with an
+empty string. The default is C<$\>. Common values for C<eol> are
+C<"\012"> (Line Feed) or C<"\015\012"> (Carriage Return, Line Feed).
+Cannot be longer than 7 (ASCII) characters.
 
 If both C<$/> and C<eol> equal C<"\015">, parsing lines that end on
 only a Carriage Return without Line Feed, will be C<parse>d correct.
@@ -867,6 +876,8 @@ Limited to a single-byte character, usually in the range from 0x20
 
 The separation character can not be equal to the quote character.
 The separation character can not be equal to the escape character.
+
+See also L<Text::CSV_XS/CAVEATS>
 
 =item allow_whitespace
 
@@ -955,7 +966,7 @@ doubling the quote mark in a field escapes it:
   "foo","bar","Escape ""quote mark"" with two ""quote marks""","baz"
 
 If you change the default quote_char without changing the default
-escape_char, the escape_char will still be the quote mark.  If instead 
+escape_char, the escape_char will still be the quote mark.  If instead
 you want to escape the quote_char by doubling it, you will need to change
 the escape_char to be the same as what you changed the quote_char to.
 
@@ -1047,7 +1058,7 @@ is equivalent to
      quote_char          => '"',
      escape_char         => '"',
      sep_char            => ',',
-     eol                 => '',
+     eol                 => $\,
      always_quote        => 0,
      binary              => 0,
      keep_meta_info      => 0,
@@ -1152,7 +1163,7 @@ methods are meaningless, again.
 
 The C<getline_hr ()> and C<column_names ()> methods work together to allow
 you to have rows returned as hashrefs. You must call C<column_names ()>
-first to declare your column names. 
+first to declare your column names.
 
  $csv->column_names (qw( code name price description ));
  $hr = $csv->getline_hr ($io);

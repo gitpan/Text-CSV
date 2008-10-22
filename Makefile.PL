@@ -31,7 +31,7 @@ if ($has_xs) {
         $message = "You have Text::CSV_XS (v.$xs_version), so Text::CSV can work very fast!!";
     }
     else {
-        $message = "Your Text::CSV_XS version is $xs_version, but if you install v.$req_xs_ver,\n"
+        $message = "Your Text::CSV_XS version is $xs_version. If you install v.$req_xs_ver,\n"
                  . "Text::CSV will work faster.";
     }
 }
@@ -39,7 +39,7 @@ else {
     $message = "If you install Text::CSV_XS v.$req_xs_ver, it makes Text::CSV faster.";
 }
 print <<EOF;
-Wellcome to Text::CSV (v.$version)
+Welcome to Text::CSV (v.$version)
 =============================
 $message
 
