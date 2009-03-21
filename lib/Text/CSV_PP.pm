@@ -11,7 +11,7 @@ use strict;
 use vars qw($VERSION);
 use Carp ();
 
-$VERSION = '1.18';
+$VERSION = '1.19';
 
 sub PV  { 0 }
 sub IV  { 1 }
@@ -25,6 +25,7 @@ my $ERRORS = {
         # PP and XS
         1000 => "INI - constructor failed",
         1001 => "sep_char is equal to quote_char or escape_char",
+        1002 => "INI - allow_whitespace with escape_char or quote_char SP or TAB",
 
         2010 => "ECR - QUO char inside quotes followed by CR not part of EOL",
         2011 => "ECR - Characters after end of quoted field",
@@ -149,6 +150,16 @@ sub new {
         }
         $self->{$prop} = $attr->{$prop};
     }
+
+    if ( $self->{allow_whitespace} and
+           ( defined $self->{quote_char}  && $self->{quote_char}  =~ m/^[ \t]$/ ) 
+           ||
+           ( defined $self->{escape_char} && $self->{escape_char} =~ m/^[ \t]$/ )
+    ) {
+       $last_new_error = "INI - allow_whitespace with escape_char or quote_char SP or TAB";
+       return;
+    }
+
 
     $last_new_error = '';
 
@@ -382,6 +393,35 @@ sub _parse {
             $flag |= IS_QUOTED if ($keep_meta_info);
             $col = $1;
 
+            my $flga_in_quot_esp;
+            while ( $col =~ /$re_in_quot_esp1/g ) {
+                my $str = $1;
+                $flga_in_quot_esp = 1;
+
+                if ($str !~ $re_in_quot_esp2) {
+                    unless ($self->{allow_loose_escapes}) {
+                        $self->_set_error_diag( 2025, $pos - 2 ); # Needless ESC in quoted field
+                        $palatable = 0;
+                        last;
+                    }
+                    else {
+                        $col =~ s/\Q$esc\E(.)/$1/g;
+                    }
+                }
+
+            }
+
+            last unless ( $palatable );
+
+            unless ( $flga_in_quot_esp ) {
+                if ($col =~ /(?<!\Q$esc\E)\Q$esc\E/) {
+                    $self->_set_error_diag( 4002, $pos - 1 ); # No escaped ESC in quoted field
+                    $palatable = 0;
+                    last;
+                }
+            }
+=pod
+
             if ($col =~ $re_in_quot_esp1) {
                 my $str = $1;
                 if ($str !~ $re_in_quot_esp2) {
@@ -402,6 +442,8 @@ sub _parse {
                     last;
                 }
             }
+
+=cut
 
             $col =~ s{$re_esc}{$1 eq '0' ? "\0" : $1}eg;
 
@@ -730,7 +772,7 @@ sub _set_error_diag {
 ################################################################################
 
 BEGIN {
-    for my $method (qw/quote_char escape_char sep_char always_quote binary allow_whitespace
+    for my $method (qw/sep_char always_quote binary
                         keep_meta_info allow_loose_quotes allow_loose_escapes verbatim blank_is_undef/) {
         eval qq|
             sub $method {
@@ -739,6 +781,42 @@ BEGIN {
             }
         |;
     }
+}
+
+
+sub quote_char {
+    my $self = shift;
+    if ( @_ ) {
+        my $qc = shift;
+        defined $qc && $qc =~ m/^[ \t]$/ && $self->{allow_whitespace} and Carp::croak( $self->SetDiag(1002) );
+        $self->{quote_char} = $qc;
+    }
+    $self->{quote_char};
+}
+
+
+sub escape_char {
+    my $self = shift;
+    if ( @_ ) {
+        my $es = shift;
+        defined $es && $es =~ m/^[ \t]$/ && $self->{allow_whitespace} and Carp::croak( $self->SetDiag(1002) );
+        $self->{escape_char} = $es;
+    }
+    $self->{escape_char};
+}
+
+
+sub allow_whitespace {
+    my $self = shift;
+    if ( @_ ) {
+        my $aw = shift;
+        $aw and
+            (defined $self->{quote_char}  && $self->{quote_char}  =~ m/^[ \t]$/) ||
+            (defined $self->{escape_char} && $self->{escape_char} =~ m/^[ \t]$/)
+                and Carp::croak ($self->SetDiag (1002));
+        $self->{allow_whitespace} = $aw;
+    }
+    $self->{allow_whitespace};
 }
 
 
@@ -882,12 +960,16 @@ See also L<Text::CSV_XS/CAVEATS>
 =item allow_whitespace
 
 When this option is set to true, whitespace (TAB's and SPACE's)
-surrounding the separation character is removed when parsing. So
-lines like:
+surrounding the separation character is removed when parsing. If
+either TAB or SPACE is one of the three major characters C<sep_char>,
+C<quote_char>, or C<escape_char> it will not be considered whitespace.
+
+So lines like:
 
   1 , "foo" , bar , 3 , zapp
 
 are now correctly parsed, even though it violates the CSV specs.
+
 Note that B<all> whitespace is stripped from start and end of each
 field. That would make is more a I<feature> than a way to be able
 to parse bad CSV lines, as
@@ -1378,6 +1460,11 @@ Currently these errors are available:
 The separation character cannot be equal to either the quotation character
 or the escape character, as that will invalidate all parsing rules.
 
+=item 1002 "INI - allow_whitespace with escape_char or quote_char SP or TAB"
+
+Using C<allow_whitespace> when either C<escape_char> or C<quote_char> is
+equal to SPACE or TAB is too ambiguous to allow.
+
 =item 2010 "ECR - QUO char inside quotes followed by CR not part of EOL"
 
 =item 2011 "ECR - Characters after end of quoted field"
@@ -1440,7 +1527,7 @@ Text::CSV was written by E<lt>alan[at]mfgrtl.comE<gt>.
 
 =head1 COPYRIGHT AND LICENSE
 
-Copyright 2005-2008 by Makamaka Hannyaharamitu, E<lt>makamaka[at]cpan.orgE<gt>
+Copyright 2005-2009 by Makamaka Hannyaharamitu, E<lt>makamaka[at]cpan.orgE<gt>
 
 This library is free software; you can redistribute it and/or modify
 it under the same terms as Perl itself. 

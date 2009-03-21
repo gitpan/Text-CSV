@@ -1,5 +1,11 @@
 Revision history for Perl extension Text::CSV.
 
+1.11  Sat Mar 21 16:07:29 2009
+	- updated the compatibility for Text::CSV_XS version 0.63
+	    * added error 1002
+	- updated the compatibility for Text::CSV_XS version 0.58
+	    * fixed allow_loose_escapes bug
+
 1.10  Wed Oct 22 02:34:03 2008
 	- updated the compatibility for Text::CSV_XS version 0.56
 	    * updated docs

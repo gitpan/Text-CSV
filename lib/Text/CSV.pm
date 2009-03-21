@@ -5,14 +5,14 @@ use strict;
 use Carp ();
 
 BEGIN {
-    $Text::CSV::VERSION = '1.10';
+    $Text::CSV::VERSION = '1.11';
     $Text::CSV::DEBUG   = 0;
 }
 
 # if use CSV_XS, requires version
 my $Module_XS  = 'Text::CSV_XS';
 my $Module_PP  = 'Text::CSV_PP';
-my $XS_Version = '0.56';
+my $XS_Version = '0.63';
 
 my $Is_Dynamic = 0;
 
@@ -270,9 +270,9 @@ perhaps better called ASV (anything separated values) rather than just CSV.
 
 =head1 VERSION
 
-    1.10
+    1.11
 
-This module is compatible with Text::CSV_XS B<0.56> or later.
+This module is compatible with Text::CSV_XS B<0.63> and later.
 
 =head2 BINARY MODE
 
@@ -361,12 +361,14 @@ See also L<Text::CSV_XS/CAVEATS>
 =item allow_whitespace
 
 When this option is set to true, whitespace (TAB's and SPACE's)
-surrounding the separation character is removed when parsing. So
-lines like:
+surrounding the separation character is removed when parsing. If
+either TAB or SPACE is one of the three major characters C<sep_char>,
+C<quote_char>, or C<escape_char> it will not be considered whitespace.
 
   1 , "foo" , bar , 3 , zapp
 
 are now correctly parsed, even though it violates the CSV specs.
+
 Note that B<all> whitespace is stripped from start and end of each
 field. That would make is more a I<feature> than a way to be able
 to parse bad CSV lines, as
@@ -984,17 +986,17 @@ New Text::CSV (since 0.99) is maintained by Makamaka.
 Text::CSV
 
 Copyright (C) 1997 Alan Citterman. All rights reserved.
-Copyright (C) 2007-2008 Makamaka Hannyaharamitu.
+Copyright (C) 2007-2009 Makamaka Hannyaharamitu.
 
 
 Text::CSV_PP:
 
-Copyright (C) 2005-2008 Makamaka Hannyaharamitu.
+Copyright (C) 2005-2009 Makamaka Hannyaharamitu.
 
 
 Text:CSV_XS:
 
-Copyright (C) 2007-2008 H.Merijn Brand for PROCURA B.V.
+Copyright (C) 2007-2009 H.Merijn Brand for PROCURA B.V.
 Copyright (C) 1998-2001 Jochen Wiedmann. All rights reserved.
 Portions Copyright (C) 1997 Alan Citterman. All rights reserved.
 

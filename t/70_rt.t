@@ -3,11 +3,13 @@
 use strict;
 $^W = 1;
 
+BEGIN { $ENV{PERL_TEXT_CSV} = 0; }
+
+
 #use Test::More "no_plan";
- use Test::More tests => 73;
+ use Test::More tests => 367;
 
 BEGIN {
-    $ENV{PERL_TEXT_CSV} = 0;
     use_ok "Text::CSV", ();
     plan skip_all => "Cannot load Text::CSV" if $@;
     }
@@ -15,14 +17,16 @@ BEGIN {
 my $csv_file = "_test.csv";
 END { unlink $csv_file }
 
-my $rt_no;
-my %input;
+my ($rt, %input, %desc);
 while (<DATA>) {
-    if (m/^«(\d+)»/) {
-	$rt_no = $1;
+    if (s/^«(\d+)»\s*-?\s*//) {
+	chomp;
+	$rt = $1;
+	$desc{$rt} = $_;
 	next;
 	}
-    push @{$input{$rt_no}}, $_;
+    s/\\([0-7]{1,3})/chr oct $1/ge;
+    push @{$input{$rt}}, $_;
     }
 
 # Regression Tests based on RT reports
@@ -30,9 +34,10 @@ while (<DATA>) {
 {   # http://rt.cpan.org/Ticket/Display.html?id=24386
     # #24386: \t doesn't work in _XS, works in _PP
 
-    my @lines = @{$input{24386}};
+    $rt = 24386;
+    my @lines = @{$input{$rt}};
 
-    ok (my $csv = Text::CSV->new ({ sep_char => "\t" }), "RT-24386: \\t doesn't work");
+    ok (my $csv = Text::CSV->new ({ sep_char => "\t" }), "RT-$rt: $desc{$rt}");
     is ($csv->sep_char, "\t", "sep_char = TAB");
     foreach my $line (0 .. $#lines) {
 	ok ($csv->parse ($lines[$line]), "parse line $line");
@@ -45,10 +50,11 @@ while (<DATA>) {
 {   # http://rt.cpan.org/Ticket/Display.html?id=21530
     # 21530: getline () does not return documented value at end of filehandle
     # IO::Handle  was first released with perl 5.00307
+    $rt = 21530;
     open  FH, ">$csv_file";
-    print FH @{$input{21530}};
+    print FH @{$input{$rt}};
     close FH;
-    ok (my $csv = Text::CSV->new ({ binary => 1 }), "RT-21530: getline () return at eof");
+    ok (my $csv = Text::CSV->new ({ binary => 1 }), "RT-$rt: $desc{$rt}");
     open  FH, "<$csv_file";
     my $row;
     foreach my $line (1 .. 5) {
@@ -64,30 +70,32 @@ while (<DATA>) {
 
 {   # http://rt.cpan.org/Ticket/Display.html?id=21530
     # 18703: Fails to use quote_char of '~'
+    $rt = 18703;
     my ($csv, @fld);
-    ok ($csv = Text::CSV->new ({ quote_char => "~" }), "RT-18703: Fails to use quote_char of '~'");
+    ok ($csv = Text::CSV->new ({ quote_char => "~" }), "RT-$rt: $desc{$rt}");
     is ($csv->quote_char, "~", "quote_char is '~'");
 
-    ok ($csv->parse ($input{18703}[0]), "Line 1");
+    ok ($csv->parse ($input{$rt}[0]), "Line 1");
     ok (@fld = $csv->fields, "Fields");
     is (scalar @fld, 1, "Line 1 has only one field");
     is ($fld[0], "Style Name", "Content line 1");
 
     # The line has invalid escape. the escape should only be
     # used for the special characters
-    ok (!$csv->parse ($input{18703}[1]), "Line 2");
+    ok (!$csv->parse ($input{$rt}[1]), "Line 2");
     }
 
 {   # http://rt.cpan.org/Ticket/Display.html?id=15076
     # 15076: escape_char before characters that do not need to be escaped.
+    $rt = 15076;
     my ($csv, @fld);
     ok ($csv = Text::CSV->new ({
 	sep_char		=> ";",
 	escape_char		=> "\\",
 	allow_loose_escapes	=> 1,
-	}), "RT-15076: escape chars ....");
+	}), "RT-$rt: $desc{$rt}");
 
-    ok ($csv->parse ($input{15076}[0]), "Line 1");
+    ok ($csv->parse ($input{$rt}[0]), "Line 1");
     ok (@fld = $csv->fields, "Fields");
     is (scalar @fld, 2, "Line 1 has two fields");
     is ($fld[0], "Example", "Content field 1");
@@ -96,10 +104,11 @@ while (<DATA>) {
 
 {   # http://rt.cpan.org/Ticket/Display.html?id=34474
     # 34474: wish: integrate row-as-hashref feature from Parse::CSV
+    $rt = 34474;
     open  FH, ">$csv_file";
-    print FH @{$input{34474}};
+    print FH @{$input{$rt}};
     close FH;
-    ok (my $csv = Text::CSV->new (),		"RT-34474: getline_hr ()");
+    ok (my $csv = Text::CSV->new (),		"RT-$rt: $desc{$rt}");
     is ($csv->column_names, undef,		"No headers yet");
     open  FH, "<$csv_file";
     my $row;
@@ -119,19 +128,133 @@ while (<DATA>) {
 
 {   # http://rt.cpan.org/Ticket/Display.html?id=38960
     # 38960: print () on invalid filehandle warns and returns success
+    $rt = 38960;
     open  FH, ">$csv_file";
     print FH "";
     close FH;
     my $err = "";
     open  FH, "<$csv_file";
-    ok (my $csv = Text::CSV->new (),		"RT-38960: print () fails");
+    ok (my $csv = Text::CSV->new (),		"RT-$rt: $desc{$rt}");
     local $SIG{__WARN__} = sub { $err = "Warning" };
     ok (!$csv->print (*FH, [ 1 .. 4 ]),		"print ()");
     is ($err, "Warning",			"IO::Handle triggered a warning");
-    my @err = $csv->error_diag ();
-    is ($err[0], 2200,	"error 2200");
+    is (($csv->error_diag)[0], 2200,		"error 2200");
     close FH;
     unlink $csv_file;
+    }
+
+{   # http://rt.cpan.org/Ticket/Display.html?id=40507
+    # 40507: Parsing fails on escaped null byte
+    $rt = 40507;
+    ok (my $csv = Text::CSV->new ({ binary => 1 }), "RT-$rt: $desc{$rt}");
+    my $str = $input{$rt}[0];
+    ok ($csv->parse ($str),		"parse () correctly escaped NULL");
+    is_deeply ([ $csv->fields ],
+	[ qq{Audit active: "TRUE \0},
+	  qq{Desired:},
+	  qq{Audit active: "TRUE \0} ], "fields ()");
+    $str = $input{$rt}[1];
+    is ($csv->parse ($str), 0,		"parse () badly escaped NULL");
+    my @diag = $csv->error_diag;
+#    is ($diag[0], 2023,			"Error 2023");
+#    is ($diag[2],   23,			"Position 23");
+    is ($diag[0], 2025,			"Error 2025 but 2023 in XS");
+    is ($diag[2],   24,			"Position 24 but 23 in XS");
+    $csv->allow_loose_escapes (1);
+    ok ($csv->parse ($str),		"parse () badly escaped NULL");
+    }
+
+{   # http://rt.cpan.org/Ticket/Display.html?id=42642
+    # 42642: failure on unusual quote/sep values
+    $rt = 42642;
+    SKIP: {
+	$] < 5.008002 and skip "UTF8 unreliable in perl $]", 6;
+
+	open  FH, ">$csv_file";
+	print FH @{$input{$rt}};
+	close FH;
+	my ($sep, $quo) = ("\x14", "\xfe");
+	chop ($_ = "$_\x{20ac}") for $sep, $quo;
+	ok (my $csv = Text::CSV->new ({ binary => 1, sep_char => $sep }), "RT-$rt: $desc{$rt}");
+	ok ($csv->quote_char ($quo), "Set quote_char");
+	open  FH, "<$csv_file";
+	ok (my $row = $csv->getline (*FH),	"getline () with decode sep/quo");
+	$csv->error_diag ();
+	close FH;
+	unlink $csv_file;
+	is_deeply ($row, [qw( DOG CAT WOMBAT BANDERSNATCH )], "fields ()");
+	ok ($csv->parse ($input{$rt}[1]),	"parse () with decoded sep/quo");
+	is_deeply ([ $csv->fields ], [ 0..3 ],	"fields ()");
+	}
+    }
+
+{   # http://rt.cpan.org/Ticket/Display.html?id=43927
+    # 43927: Is bind_columns broken or am I using it wrong?
+    $rt = 43927;
+    SKIP: {
+	open  FH, ">$csv_file";
+	print FH @{$input{$rt}};
+	close FH;
+	my ($c1, $c2);
+	ok (my $csv = Text::CSV->new ({ binary => 1 }), "RT-$rt: $desc{$rt}");
+	ok ($csv->bind_columns (\$c1, \$c2), "bind columns");
+	open  FH, "<$csv_file";
+	ok (my $row = $csv->getline (*FH), "getline () with bound columns");
+	$csv->error_diag ();
+	close FH;
+	unlink $csv_file;
+	is_deeply ($row, [], "should return empty ref");
+	is_deeply ([ $c1, $c2], [ 1, 2 ], "fields ()");
+	}
+    }
+
+{   # http://rt.cpan.org/Ticket/Display.html?id=44402
+    # 44402 - Unexpected results parsing tab-separated spaces
+    $rt = 44402;
+    SKIP: {
+	open  FH, ">$csv_file";
+	my @ws = ("", " ", "  ");
+	foreach my $f1 (@ws) {
+	    foreach my $f2 (@ws) {
+		foreach my $f3 (@ws) {
+		    print FH "$f1\t$f2\t$f3\r\n";
+		    }
+		}
+	    }
+	close FH;
+
+	my $csv;
+	ok ($csv = Text::CSV->new ({
+	    sep_char => "\t",
+	    }), "RT-$rt: $desc{$rt}");
+	open  FH, "<$csv_file";
+	while (my $row = $csv->getline (*FH)) {
+	    ok ($row, "getline $.");
+	    my @row = @$row;
+	    is ($#row, 2, "Got 3 fields");
+	    like ($row[$_], qr{^ *$}, "field $_ with only spaces") for 0..2;
+	    }
+	ok ($csv->eof, "read complete file");
+	close FH;
+
+	ok ($csv = Text::CSV->new ({
+	    sep_char         => "\t",
+	    allow_whitespace => 1,
+	    }), "RT-$rt: $desc{$rt}");
+	open  FH, "<$csv_file";
+	while (my $row = $csv->getline (*FH)) {
+	    ok ($row, "getline $.");
+	    my @row = @$row;
+	    is ($#row, 2, "Got 3 fields");
+	    is ($row[$_], "", "field $_ empty") for 0..2;
+	    }
+	ok ($csv->eof, "read complete file");
+	close FH;
+	unlink $csv_file;
+
+	ok ($csv->parse ("  \t  \t  "), "parse ()");
+	is_deeply ([$csv->fields],["","",""],"3 empty fields");
+	}
     }
 
 __END__
@@ -159,3 +282,13 @@ code,name,price,description
 1,Dress,240.00,"Evening gown"
 2,Drinks,82.78,"Drinks"
 3,Sex,-9999.99,"Priceless"
+«38960» - print () on invalid filehandle warns and returns success
+«40507» - Parsing fails on escaped null byte
+"Audit active: ""TRUE "0","Desired:","Audit active: ""TRUE "0"
+"Audit active: ""TRUE "\0","Desired:","Audit active: ""TRUE "\0"
+«42642» - failure on unusual quote/sep values
+þDOGþþCATþþWOMBATþþBANDERSNATCHþ
+þ0þþ1þþ2þþ3þ
+«43927» - Is bind_columns broken or am I using it wrong?
+1,2
+«44402» - Unexpected results parsing tab-separated spaces
