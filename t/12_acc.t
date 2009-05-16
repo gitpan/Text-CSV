@@ -3,7 +3,7 @@
 use strict;
 $^W = 1;	# use warnings core since 5.6
 
-use Test::More tests => 47;
+use Test::More tests => 66;
 
 BEGIN {
     $ENV{PERL_TEXT_CSV} = 0;
@@ -52,11 +52,11 @@ is ($csv->string,
     qq{=txt \\=, "Hi!"=;=Yes=;==;=2=;;=1.09=;=\r=;\r},	"string");
 
 # Funny settings, all three translate to \0 internally
-$csv = Text::CSV->new ({
+ok ($csv = Text::CSV->new ({
     sep_char	=> undef,
     quote_char	=> undef,
     escape_char	=> undef,
-    });
+    }),						"new (undef ...)");
 is ($csv->sep_char,		undef,		"sep_char undef");
 is ($csv->quote_char,		undef,		"quote_char undef");
 is ($csv->escape_char,		undef,		"escape_char undef");
@@ -69,14 +69,37 @@ ok (!$csv->parse ("foo,foo\0bar"),		"parse (foo)");
 $csv->binary (1);
 ok ( $csv->parse ("foo,foo\0bar"),		"parse (foo)");
 
+# Some forbidden combinations
+foreach my $ws (" ", "\t") {
+    ok ($csv = Text::CSV->new ({ escape_char => $ws }), "New blank escape");
+    eval { ok ($csv->allow_whitespace (1), "Allow ws") };
+    is (($csv->error_diag)[0], 1002, "Wrong combo");
+    ok ($csv = Text::CSV->new ({ quote_char  => $ws }), "New blank quote");
+    eval { ok ($csv->allow_whitespace (1), "Allow ws") };
+    is (($csv->error_diag)[0], 1002, "Wrong combo");
+    ok ($csv = Text::CSV->new ({ allow_whitespace => 1 }), "New ws 1");
+    eval { ok ($csv->escape_char ($ws),     "esc") };
+    is (($csv->error_diag)[0], 1002, "Wrong combo");
+    ok ($csv = Text::CSV->new ({ allow_whitespace => 1 }), "New ws 1");
+    eval { ok ($csv->quote_char  ($ws),     "esc") };
+    is (($csv->error_diag)[0], 1002, "Wrong combo");
+    }
+eval { $csv = Text::CSV->new ({
+    escape_char      => "\t",
+    quote_char       => " ",
+    allow_whitespace => 1,
+    }) };
+like ((Text::CSV::error_diag)[1], qr{^INI - allow_whitespace}, "Wrong combo - error message");
+is   ( (Text::CSV::error_diag)[0], 1002, "Wrong combo - numeric error");
+
 # And test erroneous calls
 
 is (Text::CSV::new (0),		   undef,	"new () as function");
 is (Text::CSV::error_diag () . '', "usage: my \$csv = Text::CSV_PP->new ([{ option => value, ... }]);",
 							"Generic usage () message");
 is (Text::CSV->new ({ oel     => "" }), undef,	"typo in attr");
-is (Text::CSV::error_diag () . '', "Unknown attribute 'oel'",	"Unsupported attr");
+is (Text::CSV::error_diag () . '', "INI - Unknown attribute 'oel'",	"Unsupported attr");
 is (Text::CSV->new ({ _STATUS => "" }), undef,	"private attr");
-is (Text::CSV::error_diag () . '', "Unknown attribute '_STATUS'",	"Unsupported private attr");
+is (Text::CSV::error_diag () . '', "INI - Unknown attribute '_STATUS'",	"Unsupported private attr");
 
 1;

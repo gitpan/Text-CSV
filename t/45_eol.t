@@ -3,7 +3,7 @@
 use strict;
 $^W = 1;
 
-use Test::More tests => 255;
+use Test::More tests => 262;
 
 BEGIN {
     $ENV{PERL_TEXT_CSV} = 0;
@@ -82,7 +82,9 @@ foreach my $rs ("\n", "\r\n", "\r") {
     ok ($csv->parse (qq{"x" \r}),  "Trailing \\r with no escape char");
     }
 
-{   local $\ = "#\r\n";
+SKIP: {
+    $] < 5.008 and skip "\$\\ tests don't work in perl 5.6.x and older", 2;
+    {   local $\ = "#\r\n";
     my $csv = Text::CSV->new ();
     open  FH, ">_eol.csv";
     $csv->print (*FH, [ "a", 1 ]);
@@ -104,6 +106,7 @@ foreach my $rs ("\n", "\r\n", "\r") {
     close FH;
     unlink "_eol.csv";
     }
+}
 
 ok (1, "Specific \\r test from tfrayner");
 {   $/ = "\r";
@@ -124,5 +127,23 @@ ok (1, "Specific \\r test from tfrayner");
     close FH;
     unlink "_eol.csv";
     }
+
+
+ok (1, "EOL undef");
+{   $/ = "\r";
+    ok (my $csv = Text::CSV->new ({eol => undef }), "new csv with eol => undef");
+    open  FH, ">_eol.csv";
+    ok ($csv->print (*FH, [1, 2, 3]), "print");
+    ok ($csv->print (*FH, [4, 5, 6]), "print");
+    close FH;
+
+    open  FH, "<_eol.csv";
+    ok (my $row = $csv->getline (*FH),	"getline 1");
+    is (scalar @$row, 5,		"# fields");
+    is_deeply ($row, [ 1, 2, 34, 5, 6],	"fields 1");
+    close FH;
+    unlink "_eol.csv";
+    }
+
 
 1;
