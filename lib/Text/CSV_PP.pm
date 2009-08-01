@@ -11,7 +11,7 @@ use strict;
 use vars qw($VERSION);
 use Carp ();
 
-$VERSION = '1.20';
+$VERSION = '1.21';
 
 sub PV  { 0 }
 sub IV  { 1 }
@@ -300,7 +300,13 @@ my %allow_eol = ("\r" => 1, "\r\n" => 1, "\n" => 1, "" => 1);
 *parse = \&_parse;
 
 sub _parse {
-    my ($self, $line) = @_;
+    my ($self, $line, $useio) = @_;
+    my $data;
+
+    if ( $useio ) {
+        return if eof($useio);
+        $line = $useio->getline();
+    }
 
     @{$self}{qw/_STRING _FIELDS _STATUS _ERROR_INPUT/} = ( \do{ defined $line ? "$line" : undef }, undef, 0, $line );
 
@@ -356,6 +362,10 @@ sub _parse {
     my $utf8 = 1 if utf8::is_utf8( $line ); # if UTF8 marked, flag on.
 
     for my $col ( $line =~ /$re_split/g ) {
+
+        if ( $useio ) {
+#            print "=$line=";
+        }
 
         if ($keep_meta_info) {
             $flag = 0x0000;
@@ -435,6 +445,13 @@ sub _parse {
         elsif ($col =~ $re_invalid_quot) {
 
             unless ($self->{allow_loose_quotes} and $col =~ /$re_quot_char/) {
+
+                if ( $useio ) {
+                    return if eof($useio);
+                    $line .= $useio->getline();
+                    next;
+                }
+
                 $self->_set_error_diag(
                       $col =~ /^\Q$quot\E(.*)\Q$quot\E.$/s  ? (2011, $pos - 2)
                     : $col =~ /^$re_quot_char/              ? (2027, $pos - 1)
@@ -571,19 +588,91 @@ sub getline {
 
     $self->{_EOF} = eof($io) ? 1 : '';
 
+#    $self->_parse( undef, $io ) or return;
+
+
     my $line = $io->getline();
     my $quot = $self->{quote_char};
-    my $re   = $self->binary ? qr/(?:\Q$quot\E)(?!0)/ : qr/(?:\Q$quot\E)/;
+    my $sep  = $self->{sep_char};
+    my $eol  = $self->{eol};
 
-    $line .= $io->getline() while ( defined $line and scalar(my @list = $line =~ /$re/g) % 2 and !eof($io) );
+    my $re   = qr/(?:\Q$quot\E)/;
 
-    my $eol = $self->{eol};
+    if ( defined $line and $line =~ /${re}0/ ) {
+#        print "=$line=\n";
+        while ( not $self->_parse($line) and !eof($io) ) {
+#            print $self->error_diag, "???\n";
+#            print "\t=$line=\n";
+            $line .= $io->getline();
+        }
+    }
+    else {
+        $line .= $io->getline() while ( defined $line and scalar(my @list = $line =~ /$re/g) % 2 and !eof($io) );
+
+        if (defined $eol and defined $line) {
+            $line =~ s/\Q$eol\E$//;
+        }
+
+        $self->_parse($line) or return;
+    }
+
+
+
+=pod
+
+    if ( $self->binary ) {
+        my $start = 0;
+        my $re   = qr/(?:\Q$quot\E)/;
+
+        while (
+                ( defined $line and !eof($io) ) and (
+                    ( $line !~ /[^$re]${re}0/ and scalar(my @list = $line =~ /$re/g) % 2 )
+                        or 
+                    ( scalar(my @list = $line =~ /(?![^$re]${re}0)/g) % 2 )
+#                        or 
+#                    ( scalar(my @list = $line =~ /(?:^|\Q$sep\E) *(?:\Q$quot\E)/g) % 2 )
+                )
+        )
+        {
+            $line .= $io->getline()
+        }
+#        if ( defined $line and $line =~ /(?:^|\Q$sep\E) *(?:\Q$quot\E)/ and !eof($io)  ){
+#            print "firstline\n";
+#        } # first line
+    }
+    else {
+        my $re   = qr/(?:\Q$quot\E)/;
+        $line .= $io->getline() while ( defined $line and scalar(my @list = $line =~ /$re/g) % 2 and !eof($io) );
+    }
 
     if (defined $eol and defined $line) {
         $line =~ s/\Q$eol\E$//;
     }
-
+print "=$line=\n";
     $self->_parse($line) or return;
+
+#=pod
+
+#    my $re   = qr/(?:\Q$quot\E)/;
+#    my $re   = $self->binary ? qr/(?:\Q$quot\E)(?!0)/ : qr/(?:\Q$quot\E)/;
+#    my $re   = $self->binary ? qr/(?:^|\Q$sep\E) *(?:\Q$quot\E)|(?:\Q$quot\E)(?:(?![0\Q$quot\E])|\Q$sep\E|$)/ : qr/(?:\Q$quot\E)/;
+#    my $re   = $self->binary ? qr/(?:\Q$quot\E)|(?:\Q$quot\E)(?![0\Q$quot\E])/ : qr/(?:\Q$quot\E)/;
+    my $re   = $self->binary ? qr/(?:^|\Q$sep\E) *(?:\Q$quot\E)|(?:\Q$quot$quot\E)*(?:\Q$quot\E)0/ : qr/(?:\Q$quot\E)/;
+
+#    $line .= $io->getline() while ( defined $line and scalar(my @list = $line =~ /$re/g) % 2 and !eof($io) );
+#print "=$line=\n";
+#    my $eol = $self->{eol};
+
+#    $line = $io->getline();
+#     while ( defined $line and scalar(my @list = $line =~ /$re/g) % 2 and !eof($io) );
+
+#    if (defined $eol and defined $line) {
+#        $line =~ s/\Q$eol\E$//;
+#    }
+#print "=====$line======\n";
+#    $self->_parse($line,1) or return;
+
+=cut
 
     if ( $self->{_BOUND_COLUMNS} ) {
         my @vals  = $self->_fields();

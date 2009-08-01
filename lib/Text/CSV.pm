@@ -5,7 +5,7 @@ use strict;
 use Carp ();
 
 BEGIN {
-    $Text::CSV::VERSION = '1.12';
+    $Text::CSV::VERSION = '1.13';
     $Text::CSV::DEBUG   = 0;
 }
 
@@ -270,7 +270,7 @@ perhaps better called ASV (anything separated values) rather than just CSV.
 
 =head1 VERSION
 
-    1.12
+    1.13
 
 This module is compatible with Text::CSV_XS B<0.65> and later.
 
