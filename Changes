@@ -1,5 +1,14 @@
 Revision history for Perl extension Text::CSV.
 
+1.14  Thu Oct  8 15:02:24 2009
+	- updated the compatibility for Text::CSV_XS version 0.68
+	    * fail if first arg to new () is not a hash ref
+	    * added empty_is_undef
+	    * error_diag () uses warn () in void context instead of STDERR
+	    * added auto_diag attribute 
+	      (not yet implemented localization feature for autodie)
+	    * updated documents same as Text::CSV_XS
+
 1.13  Fri Jul 31 12:02:53 2009
 	- getline() didn't handle '0' starting multi line data
 	                                 (pointed by Diego Santa Cruz).

@@ -4,7 +4,7 @@ use strict;
 $^W = 1;
 
 #use Test::More "no_plan";
-use Test::More tests => 1018;
+use Test::More tests => 1115;
 
 BEGIN {
     $ENV{PERL_TEXT_CSV} = 0;
@@ -31,10 +31,7 @@ ok (1, "Allow unescaped quotes");
 	$csv = Text::CSV->new ();
 	ok ($csv,			"$tst - new (alq => 0)");
 	is ($csv->parse ($bad), $valid,	"$tst - parse () fail");
-#	is (0 + $csv->error_diag, $err,		"$tst - error $err");
-	ok (($csv->error_diag + 0) >= 0,
-        "Error " . ($csv->error_diag + 0) . " but in CSV_XS $err"
-                . (($csv->error_diag + 0) == $err ? " * same in PP and XS *" : "") );
+	is (0 + $csv->error_diag, $err,	"$tst - error $err");
 
 	$csv->allow_loose_quotes (1);
 	ok ($csv->parse ($bad),		"$tst - parse () pass");
@@ -109,9 +106,11 @@ ok (1, "Allow loose escapes");
 	    # Should always fail
 	    ok (!$csv->parse ($bad),	"$tst - parse () fail");
 #	    is (0 + $csv->error_diag, $err,		"$tst - error $err");
-    	ok (($csv->error_diag + 0) >= 0,
+	   ok (($csv->error_diag + 0) >= 0,
             "Error " . ($csv->error_diag + 0) . " but in CSV_XS $err"
                     . (($csv->error_diag + 0) == $err ? " * same in PP and XS *" : "") );
+
+
 	    }
 	else {
 	    ok ($csv->parse ($bad),	"$tst - parse () pass");
@@ -147,7 +146,7 @@ ok (1, "Allow whitespace");
 	    ok ($csv,				"$s_eol / $tst - new - '$bad')");
 	    is ($csv->parse ($bad), $ok,	"$s_eol / $tst - parse () fail");
 #	    is (0 + $csv->error_diag, $err,			"$tst - error $err");
-    	ok (($csv->error_diag + 0) >= 0,
+	   ok (($csv->error_diag + 0) >= 0,
             "Error " . ($csv->error_diag + 0) . " but in CSV_XS $err"
                     . (($csv->error_diag + 0) == $err ? " * same in PP and XS *" : "") );
 
@@ -193,9 +192,10 @@ ok (1, "Allow whitespace");
 	    ok ($csv,				"$s_eol / $tst - new - '$bad')");
 	    is ($csv->parse ($bad), $ok,	"$s_eol / $tst - parse () fail");
 #	    is (0 + $csv->error_diag, $err,			"$tst - error $err");
-    	ok (($csv->error_diag + 0) >= 0,
+	   ok (($csv->error_diag + 0) >= 0,
             "Error " . ($csv->error_diag + 0) . " but in CSV_XS $err"
                     . (($csv->error_diag + 0) == $err ? " * same in PP and XS *" : "") );
+
 
 	    $csv->allow_whitespace (1);
 	    ok ($csv->parse ("$bad$eol"),	"$s_eol / $tst - parse () pass");
@@ -232,6 +232,30 @@ foreach my $conf (
 	}
     }
 
+ok (1, "empty_is_undef");
+foreach my $conf (
+	[ 0, 0, 0,	1, "",    " ", '""', 2, "",    "",    ""	],
+	[ 0, 0, 1,	1, undef, " ", '""', 2, undef, undef, undef	],
+	[ 0, 1, 0,	1, "",    " ", '""', 2, "",    "",    ""	],
+	[ 0, 1, 1,	1, undef, " ", '""', 2, undef, undef, undef	],
+	[ 1, 0, 0,	1, "",    " ", '""', 2, "",    "",    ""	],
+	[ 1, 0, 1,	1, undef, " ", '""', 2, undef, undef, undef	],
+	[ 1, 1, 0,	1, "",    " ", '""', 2, "",    "",    ""	],
+	[ 1, 1, 1,	1, undef, " ", '""', 2, undef, undef, undef	],
+	) {
+    my ($aq, $aw, $bu, @expect, $str) = @$conf;
+    $csv = Text::CSV->new ({ always_quote => $aq, allow_whitespace => $aw, empty_is_undef => $bu });
+    ok ($csv,	"new ({ aq $aq aw $aw bu $bu })");
+    ok ($csv->combine (1, "", " ", '""', 2, undef, "", undef), "combine ()");
+    ok ($str = $csv->string,			"string ()");
+    foreach my $eol ("", "\n", "\r\n") {
+	my $s_eol = _readable ($eol);
+	ok ($csv->parse ($str.$eol),	"parse (*$str$s_eol*)");
+	ok (my @f = $csv->fields,	"fields ()");
+	is_deeply (\@f, \@expect,	"result");
+	}
+    }
+
 ok (1, "Trailing junk");
 foreach my $bin (0, 1) {
     foreach my $eol (undef, "\r") {
@@ -255,18 +279,17 @@ foreach my $bin (0, 1) {
 	    my $ok = ($bin << 1) | ($eol ? 1 : 0);
 	    is ($csv->parse ($bad), $pass[$ok],	"$tst $ok - parse () default");
 #	    is (0 + $csv->error_diag, $fail[$ok],		"$tst $ok - error $fail[$ok]");
-
-    	ok (($csv->error_diag + 0) >= 0,
+	   ok (($csv->error_diag + 0) >= 0,
             "Error " . ($csv->error_diag + 0) . " but in CSV_XS $fail[$ok]"
                     . (($csv->error_diag + 0) == $fail[$ok] ? " * same in PP and XS *" : "") );
+
 
 	    $csv->allow_whitespace (1);
 	    is ($csv->parse ($bad), $pass[$ok],	"$tst $ok - parse () allow");
 #	    is (0 + $csv->error_diag, $fail[$ok],		"$tst $ok - error $fail[$ok]");
-    	ok (($csv->error_diag + 0) >= 0,
+	   ok (($csv->error_diag + 0) >= 0,
             "Error " . ($csv->error_diag + 0) . " but in CSV_XS $fail[$ok]"
                     . (($csv->error_diag + 0) == $fail[$ok] ? " * same in PP and XS *" : "") );
-
 	    }
 	}
     }

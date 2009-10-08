@@ -3,7 +3,7 @@
 use strict;
 $^W = 1;
 
- use Test::More tests => 86;
+ use Test::More tests => 90;
 #use Test::More "no_plan";
 
 my %err;
@@ -40,16 +40,11 @@ sub parse_err ($$$)
     is ($p_diag, $p_err,	"$n_err - Pos diag in list context");
     } # parse_err
 
-#parse_err 2023, 19, qq{2023,",2008-04-05,"Foo, Bar",\n}; # "
 # a difference between PP and XS
 parse_err 2027, 5, qq{2023,",2008-04-05,"Foo, Bar",\n}; # "
 
 $csv = Text::CSV->new ({ escape_char => "+", eol => "\n" });
-
-# why undef only here?
-#is ($csv->error_diag (), undef,		"No errors yet");
-is ($csv->error_diag () . '', '',		"No errors yet");
-
+is ( "" . $csv->error_diag (), "",		"No errors yet");
 
 # error pos are different from XS
 parse_err 2010,  3, qq{"x"\r};
@@ -65,10 +60,12 @@ parse_err 2032,  2, qq{ \r};
 parse_err 2034,  2, qq{1, "bar",2};
 parse_err 2037,  1, qq{\0 };
 
-unless (($ENV{AUTOMATED_TESTING} || 0) == "1") {
-    diag ("Next line should be an error message");
+{   my @warn;
+    local $SIG{__WARN__} = sub { push @warn, @_ };
     $csv->error_diag ();
-}
+    ok (@warn == 1, "Got error message");
+    like ($warn[0], qr{^# CSV_PP ERROR: 2037 - EIF}, "error content");
+    }
 
 is (Text::CSV->new ({ ecs_char => ":" }), undef, "Unsupported option");
 
@@ -78,27 +75,21 @@ is (Text::CSV->error_diag() . '', "INI - Unknown attribute 'ecs_char'",
 					"Last failure for new () - FAIL");
 is (Text::CSV::error_diag (bless {}, "Foo") . '', "INI - Unknown attribute 'ecs_char'",
 					"Last failure for new () - FAIL");
-
 $csv->SetDiag (0);
 is (0 + $csv->error_diag (), 0,  "Reset error NUM");
 is (''. $csv->error_diag (), "", "Reset error NUM");
 
-package Text::CSV::Subclass;
-
-use base "Text::CSV";
-
-use Test::More;
-
-ok (1, "Subclassed");
-
-my $csvs = Text::CSV::Subclass->new ();
-is ($csvs->error_diag() . '', "",		"Last failure for new () - OK");
-
-is (Text::CSV::Subclass->new ({ ecs_char => ":" }), undef, "Unsupported option");
-
-is (Text::CSV::Subclass->error_diag()  . '',
-    "INI - Unknown attribute 'ecs_char'",	"Last failure for new () - FAIL");
+ok (1, "Test auto_diag");
+$csv = Text::CSV->new ({ auto_diag => 1 });
+{   my @warn;
+    local $SIG{__WARN__} = sub { push @warn, @_ };
+    is ($csv->parse ('"","'), 0, "1 - bad parse");
+    ok (@warn == 1, "1 - One error");
+    like ($warn[0], qr '^# CSV_PP ERROR: 2027 -', "1 - error message");
+    }
+{   ok ($csv->{auto_diag} = 2, "auto_diag = 2 to die");
+    eval { $csv->parse ('"","') };
+    like ($@, qr '^# CSV_PP ERROR: 2027 -', "2 - error message");
+    }
 
 1;
-
-__END__
