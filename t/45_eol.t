@@ -3,7 +3,7 @@
 use strict;
 $^W = 1;
 
-use Test::More tests => 262;
+use Test::More tests => 278;
 
 BEGIN {
     $ENV{PERL_TEXT_CSV} = 0;
@@ -15,6 +15,8 @@ BEGIN {
 $| = 1;
 
 # Embedded newline tests
+
+my $def_rs = $/;
 
 foreach my $rs ("\n", "\r\n", "\r") {
     for $\ (undef, $rs) {
@@ -56,7 +58,7 @@ foreach my $rs ("\n", "\r\n", "\r") {
 		    }
 		else {
 		    ok (my $row = $csv->getline (*FH),	"getline |$s_eol|");
-		    is (ref $row, "ARRAY",			"row     |$s_eol|");
+		    is (ref $row, "ARRAY",		"row     |$s_eol|");
 		    @p = @$row;
 		    }
 
@@ -70,6 +72,7 @@ foreach my $rs ("\n", "\r\n", "\r") {
 	unlink "_eol.csv";
 	}
     }
+$/ = $def_rs;
 
 {   my $csv = Text::CSV->new ({ escape_char => undef });
 
@@ -85,28 +88,50 @@ foreach my $rs ("\n", "\r\n", "\r") {
 SKIP: {
     $] < 5.008 and skip "\$\\ tests don't work in perl 5.6.x and older", 2;
     {   local $\ = "#\r\n";
-    my $csv = Text::CSV->new ();
-    open  FH, ">_eol.csv";
-    $csv->print (*FH, [ "a", 1 ]);
-    close FH;
-    open  FH, "<_eol.csv";
-    local $/;
-    is (<FH>, "a,1#\r\n", "Strange \$\\");
-    close FH;
-    unlink "_eol.csv";
+	my $csv = Text::CSV->new ();
+	open  FH, ">_eol.csv";
+	$csv->print (*FH, [ "a", 1 ]);
+	close FH;
+	open  FH, "<_eol.csv";
+	local $/;
+	is (<FH>, "a,1#\r\n", "Strange \$\\");
+	close FH;
+	unlink "_eol.csv";
+	}
+    {   local $\ = "#\r\n";
+	my $csv = Text::CSV->new ({ eol => $\ });
+	open  FH, ">_eol.csv";
+	$csv->print (*FH, [ "a", 1 ]);
+	close FH;
+	open  FH, "<_eol.csv";
+	local $/;
+	is (<FH>, "a,1#\r\n", "Strange \$\\ + eol");
+	close FH;
+	unlink "_eol.csv";
+	}
     }
-{   local $\ = "#\r\n";
-    my $csv = Text::CSV->new ({ eol => $\ });
-    open  FH, ">_eol.csv";
-    $csv->print (*FH, [ "a", 1 ]);
-    close FH;
-    open  FH, "<_eol.csv";
-    local $/;
-    is (<FH>, "a,1#\r\n", "Strange \$\\ + eol");
-    close FH;
-    unlink "_eol.csv";
+$/ = $def_rs;
+
+
+ok (1, "Auto-detecting \\r");
+{   my @row = qw( a b c ); local $" = ",";
+    for (["\n", "\\n"], ["\r\n", "\\r\\n"], ["\r", "\\r"]) {
+	my ($eol, $s_eol) = @$_;
+	open  FH, ">_eol.csv";
+	print FH qq{@row$eol@row$eol@row$eol\x91};
+	close FH;
+	open  FH, "<_eol.csv";
+
+	my $c = Text::CSV->new ({ binary => 1, auto_diag => 1 });
+	is ($c->eol (),			"",		"default EOL");
+	is_deeply ($c->getline (*FH),	[ @row ],	"EOL 1 $s_eol");
+	is ($c->eol (),	$eol eq "\r" ? "\r" : "",	"EOL");
+	is_deeply ($c->getline (*FH),	[ @row ],	"EOL 2 $s_eol");
+	is_deeply ($c->getline (*FH),	[ @row ],	"EOL 3 $s_eol");
+	close FH;
+	unlink "_eol.csv";
+	}
     }
-}
 
 ok (1, "Specific \\r test from tfrayner");
 {   $/ = "\r";
@@ -127,7 +152,7 @@ ok (1, "Specific \\r test from tfrayner");
     close FH;
     unlink "_eol.csv";
     }
-
+$/ = $def_rs;
 
 ok (1, "EOL undef");
 {   $/ = "\r";
@@ -144,6 +169,6 @@ ok (1, "EOL undef");
     close FH;
     unlink "_eol.csv";
     }
-
+$/ = $def_rs;
 
 1;

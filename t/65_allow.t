@@ -14,7 +14,7 @@ BEGIN {
     }
 
 my $csv;
-
+#=pod
 ok (1, "Allow unescaped quotes");
 # Allow unescaped quotes inside an unquoted field
 {   my @bad = (
@@ -293,7 +293,7 @@ foreach my $bin (0, 1) {
 	    }
 	}
     }
-
+#=cut
 {   ok (1, "verbatim");
     my $csv = Text::CSV->new ({
 	sep_char => "^",
@@ -341,12 +341,16 @@ foreach my $bin (0, 1) {
 	my @fld = $csv->fields;
 	is (@fld, 4,				"#\\r\\n $gc fields");
 	is ($fld[2], "Abe",			"#\\r\\n $gc fld 2");
-	is ($fld[3], "Timmerman#\r\n",		"#\\r\\n $gc fld 3");
+#	is ($fld[3], "Timmerman#\r\n",		"#\\r\\n $gc fld 3");
+	is ($fld[3], $gc ? "Timmerman#\r\n"
+			 : "Timmerman#",	"#\\r\\n $gc fld 3");
 
 	ok ($csv->parse ($str[1]),		"#\\r\\n $gc parse");
 	@fld = $csv->fields;
 	is (@fld, 3,				"#\\r\\n $gc fields");
-	is ($fld[2], "Abe\nTimmerman#\r\n",	"#\\r\\n $gc fld 2");
+#	is ($fld[2], "Abe\nTimmerman#\r\n",	"#\\r\\n $gc fld 2");
+	is ($fld[2], $gc ? "Abe\nTimmerman#\r\n"
+			 : "Abe",		"#\\r\\n $gc fld 2");
 	}
 
     ok (1, "verbatim on getline (*FH)");
@@ -363,11 +367,15 @@ foreach my $bin (0, 1) {
 	ok ($row = $csv->getline (*FH),		"#\\r\\n $gc getline");
 	is (@$row, 4,				"#\\r\\n $gc fields");
 	is ($row->[2], "Abe",			"#\\r\\n $gc fld 2");
-	is ($row->[3], "Timmerman",		"#\\r\\n $gc fld 3");
+#	is ($row->[3], "Timmerman",		"#\\r\\n $gc fld 3");
+	is ($row->[3], $gc ? "Timmerman"
+			   : "Timmerman#",	"#\\r\\n $gc fld 3");
 
 	ok ($row = $csv->getline (*FH),		"#\\r\\n $gc parse");
 	is (@$row, 3,				"#\\r\\n $gc fields");
-	is ($row->[2], "Abe\nTimmerman",	"#\\r\\n $gc fld 2");
+#	is ($row->[2], "Abe\nTimmerman",	"#\\r\\n $gc fld 2");
+	is ($row->[2], $gc ? "Abe\nTimmerman"
+			   : "Abe",		"#\\r\\n $gc fld 2");
 	}
 
     $gc = $csv->verbatim ();

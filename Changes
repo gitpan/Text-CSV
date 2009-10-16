@@ -1,5 +1,10 @@
 Revision history for Perl extension Text::CSV.
 
+1.15  Thu Oct 15 17:23:39 2009
+	- updated the compatibility for Text::CSV_XS version 0.69
+	    * Auto detection of eol => "\r" in streams
+	       (but incomplete correspondence. I will rewrite CSV_PP in the future)
+
 1.14  Thu Oct  8 15:02:24 2009
 	- updated the compatibility for Text::CSV_XS version 0.68
 	    * fail if first arg to new () is not a hash ref
