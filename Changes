@@ -1,5 +1,10 @@
 Revision history for Perl extension Text::CSV.
 
+1.16  Tue Dec  8 19:02:58 2009
+	- updated the compatibility for Text::CSV_XS version 0.70
+	    * Added quote_space attribute
+	    * Forbad \r and \n in sep_char, quote_char, and escape_char
+
 1.15  Thu Oct 15 17:23:39 2009
 	- updated the compatibility for Text::CSV_XS version 0.69
 	    * Auto detection of eol => "\r" in streams

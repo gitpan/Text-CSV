@@ -1,6 +1,6 @@
 --- #YAML:1.0
 name:               Text-CSV
-version:            1.15
+version:            1.16
 abstract:           comma-separated values manipulator (using XS or PurePerl)
 author:
     - Makamaka Hannyaharamitu, E<lt>makamaka[at]cpan.orgE<gt>

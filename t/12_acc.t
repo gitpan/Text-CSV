@@ -3,7 +3,7 @@
 use strict;
 $^W = 1;	# use warnings core since 5.6
 
-use Test::More tests => 86;
+use Test::More tests => 107;
 
 BEGIN {
     $ENV{PERL_TEXT_CSV} = 0;
@@ -95,6 +95,21 @@ eval { $csv = Text::CSV->new ({
     }) };
 like ((Text::CSV::error_diag)[1], qr{^INI - allow_whitespace}, "Wrong combo - error message");
 is   ( (Text::CSV::error_diag)[0], 1002, "Wrong combo - numeric error");
+
+# Test 1003 in constructor
+foreach my $x ("\r", "\n", "\r\n", "x\n", "\rx") {
+    foreach my $attr (qw( sep_char quote_char escape_char )) {
+	eval { $csv = Text::CSV->new ({ $attr => $x }) };
+	is ((Text::CSV::error_diag)[0], 1003, "eol in $attr");
+	}
+    }
+# Test 1003 in methods
+foreach my $attr (qw( sep_char quote_char escape_char )) {
+    ok ($csv = Text::CSV->new, "New");
+    eval { ok ($csv->$attr ("\n"), "$attr => \\n") };
+    is (($csv->error_diag)[0], 1003, "not allowed");
+    }
+
 
 # And test erroneous calls
 
