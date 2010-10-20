@@ -5,7 +5,7 @@
 use strict;
 $^W = 1;
 
-use Test::More tests => 58;
+use Test::More tests => 88;
 
 
 BEGIN { $ENV{PERL_TEXT_CSV} = $ARGV[0] || 0; }
@@ -182,6 +182,7 @@ is( $csv->string, q{a a,"b,b","c ,c"} );
     binmode FH;
 
     ok( $csv->print( *FH, [ 0, qq{t"t"\n} ] ) );
+
     close( FH );
 
     open( FH, "__test.csv" ) or die $!;
@@ -195,3 +196,109 @@ is( $csv->string, q{a a,"b,b","c ,c"} );
 
     unlink( '__test.csv' );
 }
+
+
+# 2010-10-13 reported by hiratara
+{
+    $csv = Text::CSV->new ({ binary => 1, eol => $/, always_quote => 1 });
+
+    open( FH, '>__test.csv' ) or die $!;
+    binmode FH;
+
+    ok( $csv->print( *FH, [qw/A 01/] ) );
+    ok( $csv->print( *FH, [qw/B 02/] ) );
+    close( FH );
+
+    open( FH, "__test.csv" ) or die $!;
+    binmode FH;
+
+    my $col = $csv->getline( *FH );
+
+    is( $col->[0], 'A' );
+    is( $col->[1], '01' );
+
+    $col = $csv->getline( *FH );
+
+    is( $col->[0], 'B' );
+    is( $col->[1], '02' );
+    close( FH );
+
+    unlink( '__test.csv' );
+}
+
+
+# 2010-10-13 reported(2) by hiratara
+{
+    $csv = Text::CSV->new ({ binary => 1, eol => $/ });
+
+    open( FH, '>__test.csv' ) or die $!;
+    binmode FH;
+
+    ok( $csv->print( *FH, [qw/1 0"/] ) );
+    ok( $csv->print( *FH, [qw/2 0"/] ) );
+    close( FH );
+
+    open( FH, "__test.csv" ) or die $!;
+    binmode FH;
+
+    my $col = $csv->getline( *FH );
+
+    is( $col->[0], '1' );
+    is( $col->[1], '0"' );
+
+    $col = $csv->getline( *FH );
+
+    is( $col->[0], '2' );
+    is( $col->[1], '0"' );
+
+    close( FH );
+
+    unlink( '__test.csv' );
+}
+
+
+{ # previous three test merged
+    $csv = Text::CSV->new ({ binary => 1, eol => $/ });
+
+    open( FH, '>__test.csv' ) or die $!;
+    binmode FH;
+
+    ok( $csv->print( *FH, [ 0, qq{t"t"\n} ] ) );
+    ok( $csv->print( *FH, [qw/A 01/] ) );
+    ok( $csv->print( *FH, [qw/1 0"/] ) );
+    ok( $csv->print( *FH, [undef,undef] ) );
+    ok( $csv->print( *FH, [qw/1 0"/] ) );
+    ok( $csv->print( *FH, [qw/A 01/] ) );
+    close( FH );
+
+    open( FH, "__test.csv" ) or die $!;
+    binmode FH;
+
+    my $col = $csv->getline( *FH );
+    is( $col->[0], "0" );
+    is( $col->[1], qq{t"t"\n} );
+
+    $col = $csv->getline( *FH );
+    is( $col->[0], 'A' );
+    is( $col->[1], '01' );
+
+    $col = $csv->getline( *FH );
+    is( $col->[0], '1' );
+    is( $col->[1], '0"' );
+
+    $col = $csv->getline( *FH );
+    is( $col->[0], '' );
+    is( $col->[1], '' );
+
+    $col = $csv->getline( *FH );
+    is( $col->[0], '1' );
+    is( $col->[1], '0"' );
+
+    $col = $csv->getline( *FH );
+    is( $col->[0], 'A' );
+    is( $col->[1], '01' );
+    close( FH );
+
+    unlink( '__test.csv' );
+}
+
