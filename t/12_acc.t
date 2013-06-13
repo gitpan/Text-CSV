@@ -3,7 +3,7 @@
 use strict;
 $^W = 1;	# use warnings core since 5.6
 
-use Test::More tests => 124; # 133 for XS
+use Test::More tests => 133;
 
 BEGIN {
     $ENV{PERL_TEXT_CSV} = 0;
@@ -23,12 +23,12 @@ is ($csv->binary,			0,		"binary");
 is ($csv->keep_meta_info,		0,		"keep_meta_info");
 is ($csv->allow_loose_quotes,		0,		"allow_loose_quotes");
 is ($csv->allow_loose_escapes,		0,		"allow_loose_escapes");
-#is ($csv->allow_unquoted_escape,	0,		"allow_unquoted_escape");
+is ($csv->allow_unquoted_escape,	0,		"allow_unquoted_escape");
 is ($csv->allow_whitespace,		0,		"allow_whitespace");
 is ($csv->blank_is_undef,		0,		"blank_is_undef");
 is ($csv->empty_is_undef,		0,		"empty_is_undef");
 is ($csv->auto_diag,			0,		"auto_diag");
-#is ($csv->diag_verbose,			0,		"diag_verbose");
+is ($csv->diag_verbose,			0,		"diag_verbose");
 is ($csv->verbatim,			0,		"verbatim");
 is ($csv->quote_space,			1,		"quote_space");
 is ($csv->quote_null,			1,		"quote_null");
@@ -51,7 +51,7 @@ is ($csv->always_quote (undef),		0,		"always_quote (undef)");
 is ($csv->always_quote (1),		1,		"always_quote (1)");
 is ($csv->allow_loose_quotes (1),	1,		"allow_loose_quotes (1)");
 is ($csv->allow_loose_escapes (1),	1,		"allow_loose_escapes (1)");
-#is ($csv->allow_unquoted_escape (1),	1,		"allow_unquoted_escape (1)");
+is ($csv->allow_unquoted_escape (1),	1,		"allow_unquoted_escape (1)");
 is ($csv->allow_whitespace (1),		1,		"allow_whitespace (1)");
 is ($csv->blank_is_undef (1),		1,		"blank_is_undef (1)");
 is ($csv->empty_is_undef (1),		1,		"empty_is_undef (1)");
@@ -61,12 +61,12 @@ is ($csv->auto_diag (9),		9,		"auto_diag (9)");
 is ($csv->auto_diag ("true"),		1,		"auto_diag (\"true\")");
 is ($csv->auto_diag (undef),		0,		"auto_diag (undef)");
 is ($csv->auto_diag (""),		0,		"auto_diag (\"\")");
-#is ($csv->diag_verbose (1),		1,		"diag_verbose (1)");
-#is ($csv->diag_verbose (2),		2,		"diag_verbose (2)");
-#is ($csv->diag_verbose (9),		9,		"diag_verbose (9)");
-#is ($csv->diag_verbose ("true"),	1,		"diag_verbose (\"true\")");
-#is ($csv->diag_verbose (undef),		0,		"diag_verbose (undef)");
-#is ($csv->diag_verbose (""),		0,		"diag_verbose (\"\")");
+is ($csv->diag_verbose (1),		1,		"diag_verbose (1)");
+is ($csv->diag_verbose (2),		2,		"diag_verbose (2)");
+is ($csv->diag_verbose (9),		9,		"diag_verbose (9)");
+is ($csv->diag_verbose ("true"),	1,		"diag_verbose (\"true\")");
+is ($csv->diag_verbose (undef),		0,		"diag_verbose (undef)");
+is ($csv->diag_verbose (""),		0,		"diag_verbose (\"\")");
 is ($csv->verbatim (1),			1,		"verbatim (1)");
 is ($csv->quote_space (1),		1,		"quote_space (1)");
 is ($csv->quote_null (1),		1,		"quote_null (1)");

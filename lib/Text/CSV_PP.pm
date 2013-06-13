@@ -11,7 +11,7 @@ use strict;
 use vars qw($VERSION);
 use Carp ();
 
-$VERSION = '1.30';
+$VERSION = '1.31';
 
 sub PV  { 0 }
 sub IV  { 1 }
@@ -81,6 +81,7 @@ my %def_attr = (
     keep_meta_info      => 0,
     allow_loose_quotes  => 0,
     allow_loose_escapes => 0,
+    allow_unquoted_escape => 0,
     allow_whitespace    => 0,
     chomp_verbatim      => 0,
     types               => undef,
@@ -91,6 +92,7 @@ my %def_attr = (
     quote_space         => 1,
     quote_null          => 1,
     quote_binary        => 1,
+    diag_verbose        => 0,
 
     _EOF                => 0,
     _RECNO              => 0,
@@ -352,9 +354,9 @@ sub _parse {
 
     return 0 if(!defined $line);
 
-    my ($binary, $quot, $sep, $esc, $types, $keep_meta_info, $allow_whitespace, $eol, $blank_is_undef, $empty_is_undef)
+    my ($binary, $quot, $sep, $esc, $types, $keep_meta_info, $allow_whitespace, $eol, $blank_is_undef, $empty_is_undef, $unquot_esc)
          = @{$self}{
-            qw/binary quote_char sep_char escape_char types keep_meta_info allow_whitespace eol blank_is_undef empty_is_undef/
+            qw/binary quote_char sep_char escape_char types keep_meta_info allow_whitespace eol blank_is_undef empty_is_undef allow_unquoted_escape/
            };
 
     $sep  = ',' unless (defined $sep);
@@ -369,14 +371,18 @@ sub _parse {
     my $re_split       = $self->{_re_split}->{$quot}->{$esc}->{$sep} ||= _make_regexp_split_column($esc, $quot, $sep);
     my $re_quoted       = $self->{_re_quoted}->{$quot}               ||= qr/^\Q$quot\E(.*)\Q$quot\E$/s;
     my $re_in_quot_esp1 = $self->{_re_in_quot_esp1}->{$esc}          ||= qr/\Q$esc\E(.)/;
-    my $re_in_quot_esp2 = $self->{_re_in_quot_esp2}->{$quot}->{$esc} ||= qr/[\Q$quot$esc\E0]/;
+    my $re_in_quot_esp2 = $self->{_re_in_quot_esp2}->{$quot}->{$esc} ||= qr/[\Q$quot$esc$sep\E0]/;
     my $re_quot_char    = $self->{_re_quot_char}->{$quot}            ||= qr/\Q$quot\E/;
-    my $re_esc          = $self->{_re_esc}->{$quot}->{$esc}          ||= qr/\Q$esc\E(\Q$quot\E|\Q$esc\E|0)/;
+    my $re_esc          = $self->{_re_esc}->{$quot}->{$esc}          ||= qr/\Q$esc\E(\Q$quot\E|\Q$esc\E|\Q$sep\E|0)/;
     my $re_invalid_quot = $self->{_re_invalid_quot}->{$quot}->{$esc} ||= qr/^$re_quot_char|[^\Q$re_esc\E]$re_quot_char/;
 
     if ($allow_whitespace) {
         $re_split = $self->{_re_split_allow_sp}->{$quot}->{$esc}->{$sep}
                      ||= _make_regexp_split_column_allow_sp($esc, $quot, $sep);
+    }
+    if ($unquot_esc) {
+        $re_split = $self->{_re_split_allow_unqout_esc}->{$quot}->{$esc}->{$sep}
+                     ||= _make_regexp_split_column_allow_unqout_esc($esc, $quot, $sep);
     }
 
     my $palatable = 1;
@@ -457,7 +463,8 @@ sub _parse {
                         $palatable = 0;
                         last;
                     }
-                    else {
+
+                    unless ($self->{allow_loose_quotes}) {
                         $col =~ s/\Q$esc\E(.)/$1/g;
                     }
                 }
@@ -534,9 +541,14 @@ sub _parse {
                 $col = undef;
             }
 
+            if ( $unquot_esc ) {
+                $col =~ s/\Q$esc\E(.)/$1/g;
+            }
+
         }
 
-        if ( $binary && defined $col && _is_valid_utf8($col) ) {
+        utf8::encode($col) if $utf8;
+        if ( defined $col && _is_valid_utf8($col) ) {
             utf8::decode($col);
         }
 
@@ -569,10 +581,35 @@ sub _make_regexp_split_column {
         return qr/([^\Q$sep\E]*)\Q$sep\E/s;
     }
 
-   qr/(
+   return qr/(
         \Q$quot\E
             [^\Q$quot$esc\E]*(?:\Q$esc\E[\Q$quot$esc\E0][^\Q$quot$esc\E]*)*
         \Q$quot\E
+        | # or
+        \Q$quot\E
+            (?:\Q$esc\E[\Q$quot$esc$sep\E0]|[^\Q$quot$esc$sep\E])*
+        \Q$quot\E
+        | # or
+        [^\Q$sep\E]*
+       )
+       \Q$sep\E
+    /xs;
+}
+
+
+sub _make_regexp_split_column_allow_unqout_esc {
+    my ($esc, $quot, $sep) = @_;
+
+   return qr/(
+        \Q$quot\E
+            [^\Q$quot$esc\E]*(?:\Q$esc\E[\Q$quot$esc\E0][^\Q$quot$esc\E]*)*
+        \Q$quot\E
+        | # or
+        \Q$quot\E
+            (?:\Q$esc\E[\Q$quot$esc$sep\E0]|[^\Q$quot$esc$sep\E])*
+        \Q$quot\E
+        | # or
+            (?:\Q$esc\E[\Q$quot$esc$sep\E0]|[^\Q$quot$esc$sep\E])*
         | # or
         [^\Q$sep\E]*
        )
@@ -598,7 +635,7 @@ sub _make_regexp_split_column_allow_sp {
     qr/$ws*
        (
         \Q$quot\E
-            [^\Q$quot$esc\E]*(?:\Q$esc\E[\Q$quot$esc\E0][^\Q$quot$esc\E]*)*
+            [^\Q$quot$esc\E]*(?:\Q$esc\E[\Q$quot$esc$sep\E0][^\Q$quot$esc\E]*)*
         \Q$quot\E
         | # or
         [^\Q$sep\E]*?
@@ -663,7 +700,10 @@ sub getline {
         LOOP: {
             my $is_continued   = scalar(my @list = $line =~ /$re/g) % 2; # if line is valid, quot is even
 
-            if ( $line =~ /${re}0/ ) { # null suspicion case
+            if ( $self->{allow_loose_quotes } ) {
+                $is_continued = 0;
+            }
+            elsif ( $line =~ /${re}0/ ) { # null suspicion case
                 $is_continued = $line =~ qr/
                     ^
                     (
@@ -930,7 +970,7 @@ sub _set_error_diag {
 BEGIN {
     for my $method ( qw/always_quote binary keep_meta_info allow_loose_quotes allow_loose_escapes
                             verbatim blank_is_undef empty_is_undef quote_space quote_null
-                            quote_binary/ ) {
+                            quote_binary allow_unquoted_escape/ ) {
         eval qq|
             sub $method {
                 \$_[0]->{$method} = defined \$_[1] ? \$_[1] : 0 if (\@_ > 1);
@@ -1017,6 +1057,17 @@ sub auto_diag {
     $self->{auto_diag};
 }
 
+sub diag_verbose {
+    my $self = shift;
+    if (@_) {
+        my $v = shift;
+        !defined $v || $v eq "" and $v = 0;
+        $v =~ m/^[0-9]/ or $v = $v ? 1 : 0; # default for true/false
+        $self->{diag_verbose} = $v;
+    }
+    $self->{diag_verbose};
+}
+
 sub _is_valid_utf8 {
     return ( $_[0] =~ /^(?:
          [\x00-\x7F]
@@ -1101,7 +1152,7 @@ is a XS module and Text::CSV_PP is a Puer Perl one.
 
 =head1 VERSION
 
-    1.30
+    1.31
 
 This module is compatible with Text::CSV_XS B<0.99>.
 (except for diag_verbose and allow_unquoted_escape)
